@@ -8,13 +8,11 @@ i2c = busio.I2C(board.SCL, board.SDA)
 sensor = MLX90393(i2c, debug=False)
 
 while True:
-    status, x, y, z = sensor.read_data()
-    if not status & 0x04:
-        print("X: {} uT".format(x))
-        print("Y: {} uT".format(y))
-        print("Z: {} uT".format(z))
-    else:
-        # Something went wrong, error bit set:
-        sensor.display_status(status)
-
-    time.sleep(1)
+    x, y, z = sensor.read_data(delay=1.0, raw=True)
+    print("[{}]".format(time.monotonic()))
+    print("X: {} lsb".format(x))
+    print("Y: {} lsb".format(y))
+    print("Z: {} lsb".format(z))
+    # Display the status field if something odd happened
+    if (sensor.last_status() > 0):
+        print("S: {}".format(hex(sensor.last_status())))

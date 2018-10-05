@@ -19,7 +19,6 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
-
 """
 `adafruit_mlx90393`
 ====================================================
@@ -48,8 +47,45 @@ from micropython import const
 __version__ = "0.0.0-auto.0"
 __repo__ = "https://github.com/adafruit/Adafruit_CircuitPython_MLX90393.git"
 
-_RESET = const(0x0F)
+_CMD_SB = const(0b00010000)   # Start burst mode
+_CMD_SW = const(0b00100000)   # Start wakeup on change mode
+_CMD_SM = const(0b00110000)   # Start single-measurement mode
+_CMD_RM = const(0b01000000)   # Read measurement
+_CMD_RR = const(0b01010000)   # Read register
+_CMD_WR = const(0b01100000)   # Write register
+_CMD_EX = const(0b10000000)   # Exit mode
+_CMD_HR = const(0b11010000)   # Memory recall
+_CMD_HS = const(0b11100000)   # Memory store
+_CMD_RT = const(0b11110000)   # Reset
+_CMD_NOP = const(0x00)        # NOP
 
+_CMD_AXIS_ALL = const(0xE)    # X+Y+Z axis bits for commands
+
+_CMD_REG_CONF1 = const(0x00)  # Gain
+_CMD_REG_CONF2 = const(0x01)  # Burst, comm mode
+_CMD_REG_CONF3 = const(0x02)  # Oversampling, Filter, Resolution
+_CMD_REG_CONF4 = const(0x03)  # Sensitivity drift
+
+_GAIN_5X = const(0x0)
+_GAIN_4X = const(0x1)
+_GAIN_3X = const(0x2)
+_GAIN_2_5X = const(0x3)
+_GAIN_2X = const(0x4)
+_GAIN_1_67X = const(0x5)
+_GAIN_1_33X = const(0x6)
+_GAIN_1X = const(0x7)
+_GAIN_SHIFT = const(4)
+
+_RES_2_15 = const(0)   # +/- 2^15
+_RES_2_15B = const(1)  # +/- 2^15
+_RES_22000 = const(2)  # +/- 22000
+_RES_11000 = const(3)  # +/- 11000
+_RES_SHIFT = const(5)
+
+_HALLCONF = const(0x0C)     # Hall plate spinning rate adjust.
+
+_status_last = 0
+_gain_current = _GAIN_1_67X
 
 class MLX90393:
     """
@@ -63,56 +99,25 @@ class MLX90393:
         self.i2c_device = I2CDevice(i2c_bus, address)
         self._debug = debug
         self.reset()
-        # Write config data
-        self._transceive(bytes([0x60, 0x02, 0xB4, 0x08]))
+        # Set gain to 1.667x by default */
+        self._transceive(bytes([0x60,
+                               0x00,
+                               _gain_current << _GAIN_SHIFT | _HALLCONF,
+                               0x00]))
 
-    def _command(self, reg):
-        """
-        Sends a command to sensor using the specified register.
-
-        Returns two values. The first is the 8-bit status value, and the second
-        is the 16-bit value returned from the register itself.
-
-        :param reg: The 8-bit register to read
-        """
-        with self.i2c_device as i2c:
-            i2c.write(bytes([reg & 0xFF]))
-
-        # Read the response back
-        data = bytearray(3)
-        while True:
-            # While busy, the sensor doesn't respond to reads.
-            try:
-                with self.i2c_device as i2c:
-                    i2c.readinto(data)
-                    # Make sure we have something in the response
-                    if data[0]:
-                        break
-            except OSError:
-                pass
-        # Unpack data (status byte, big-endian 16-bit register value)
-        value = struct.unpack('>BH', data)
-        if self._debug:
-            print("\t[{}]".format(time.monotonic()))
-            print("\t Command :", hex(reg & 0xFF))
-            print("\tResponse :", [hex(b) for b in data])
-            print("\t  Status :", hex(value[0]))
-            print("\t   Value :", value[1])
-        return value
-
-    def _transceive(self, payload, len=3):
+    def _transceive(self, payload, len=0):
         """
         Writes the specified 'payload' to the sensor
         Returns the results of the write attempt.
         :param bytearray payload: The byte array to write to the sensor
-        :param len: The numbers of bytes to read back (default=3)
+        :param len: (optional) The numbers of bytes to read back (default=3)
         """
         # Write 'value' to the specified register
         with self.i2c_device as i2c:
             i2c.write(payload)
 
-        # Read the response
-        data = bytearray(len)
+        # Read the response (+1 to account for the mandatory status byte!)
+        data = bytearray(len+1)
         while True:
             # While busy, the sensor doesn't respond to reads.
             try:
@@ -123,6 +128,8 @@ class MLX90393:
                         break
             except OSError:
                 pass
+        # Track status byte
+        _status_last = data[0]
         # Unpack data (status byte, big-endian 16-bit register value)
         if self._debug:
             print("\t[{}]".format(time.monotonic()))
@@ -130,6 +137,12 @@ class MLX90393:
             print("\tResponse :", [hex(b) for b in data])
             print("\t  Status :", hex(data[0]))
         return data
+
+    def last_status(self):
+        """
+        Returns the last status byte received from the sensor.
+        """
+        return _status_last
 
     def display_status(self, status):
         """
@@ -148,24 +161,29 @@ class MLX90393:
     def reset(self):
         """
         Performs a software reset of the sensor.
-        Returns the two byte response to the command, where the first
-        byte is the status register.
         """
         if (self._debug):
             print("Resetting sensor")
         time.sleep(2)
-        return self._command(_RESET)
+        _status_last = self._transceive(bytes([_CMD_RT]))
+        return _status_last
 
-    def read_data(self):
+    def read_data(self, delay=0.0, raw=False):
         """
         Reads a single X/Y/Z sample from the magnetometer.
         """
         # Set the device to single measurement mode
-        self._transceive(bytes([0x3E]))
+        self._transceive(bytes([_CMD_SM | _CMD_AXIS_ALL]))
         # Wait a bit
-        time.sleep(0.5)
-        # Read 7 bytes back from 0x4E
-        data = self._transceive(bytes([0x4E]), 7)
+        time.sleep(delay)
+        # Read 6 bytes back from 0x4E
+        data = self._transceive(bytes([_CMD_RM | _CMD_AXIS_ALL]), 6)
         # Parse the data (status byte, 3 * signed 16-bit integers)
-        status, x, y, z = struct.unpack(">Bhhh", data)
-        return status, x, y, z
+        _status_last, x, y, z = struct.unpack(">Bhhh", data)
+
+        if raw:
+            # Return the raw int values if requested
+            return x, y, z
+        else:
+            # Convert the units to uT based on gain and resolution
+            return x, y, z
