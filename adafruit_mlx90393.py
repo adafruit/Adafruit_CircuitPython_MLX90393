@@ -43,6 +43,7 @@ except ImportError:
 
 from adafruit_bus_device.i2c_device import I2CDevice
 from micropython import const
+from array import array
 
 __version__ = "0.0.0-auto.0"
 __repo__ = "https://github.com/adafruit/Adafruit_CircuitPython_MLX90393.git"
@@ -84,8 +85,6 @@ _RES_SHIFT = const(5)
 
 _HALLCONF = const(0x0C)     # Hall plate spinning rate adjust.
 
-_status_last = 0
-_gain_current = _GAIN_1_67X
 
 class MLX90393:
     """
@@ -98,11 +97,37 @@ class MLX90393:
     def __init__(self, i2c_bus, address=0x0C, debug=False):
         self.i2c_device = I2CDevice(i2c_bus, address)
         self._debug = debug
+        self._status_last = 0
+        self._gain_current = _GAIN_1_67X
+        self._res_current = _RES_2_15
+        # The lookup table below allows you to convert raw sensor data to uT
+        # using the approrpiate (gain/resolution-dependant) lsb-per-uT
+        # coefficient below. Note that the W axis has a different coefficient
+        # than the x and y axis.
+        self._lsb_lookup = [
+            # 5x gain: res0[xy][z], res1[xy][z], res2[xy][z], res3[xy][z]
+            [[0.805, 1.468], [1.610, 2.936], [3.220, 5.872], [6.440, 11.744]],
+            # 4x gain: res0[xy][z], res1[xy][z], res2[xy][z], res3[xy][z]
+            [[0.644, 1.174], [1.288, 2.349], [2.576, 4.698], [5.152, 9.395]],
+            # 3x gain: res0[xy][z], res1[xy][z], res2[xy][z], res3[xy][z]
+            [[0.483, 0.881], [0.966, 1.762], [1.932, 3.523], [3.864, 7.046]],
+            # 2.5x gain: res0[xy][z], res1[xy][z], res2[xy][z], res3[xy][z]
+            [[0.403, 0.734], [0.805, 1.468], [1.610, 2.936], [3.220, 5.872]],
+            # 2x gain: res0[xy][z], res1[xy][z], res2[xy][z], res3[xy][z]
+            [[0.322, 0.587], [0.644, 1.174], [1.288, 2.349], [2.576, 4.698]],
+            # 1.667x gain: res0[xy][z], res1[xy][z], res2[xy][z], res3[xy][z]
+            [[0.268, 0.489], [0.537, 0.979], [1.073, 1.957], [2.147, 3.915]],
+            # 1.333x gain: res0[xy][z], res1[xy][z], res2[xy][z], res3[xy][z]
+            [[0.215, 0.391], [0.429, 0.783], [0.859, 1.566], [1.717, 3.132]],
+            # 1x gain: res0[xy][z], res1[xy][z], res2[xy][z], res3[xy][z]
+            [[0.161, 0.294], [0.322, 0.587], [0.644, 1.174], [1.288, 2.349]]
+        ]
+        # Put the device in a known state to start
         self.reset()
         # Set gain to 1.667x by default */
         self._transceive(bytes([0x60,
                                0x00,
-                               _gain_current << _GAIN_SHIFT | _HALLCONF,
+                               self._gain_current << _GAIN_SHIFT | _HALLCONF,
                                0x00]))
 
     def _transceive(self, payload, len=0):
@@ -138,11 +163,12 @@ class MLX90393:
             print("\t  Status :", hex(data[0]))
         return data
 
+    @property
     def last_status(self):
         """
         Returns the last status byte received from the sensor.
         """
-        return _status_last
+        return self._status_last
 
     def display_status(self, status):
         """
@@ -179,11 +205,14 @@ class MLX90393:
         # Read 6 bytes back from 0x4E
         data = self._transceive(bytes([_CMD_RM | _CMD_AXIS_ALL]), 6)
         # Parse the data (status byte, 3 * signed 16-bit integers)
-        _status_last, x, y, z = struct.unpack(">Bhhh", data)
+        self._status_last, x, y, z = struct.unpack(">Bhhh", data)
 
         if raw:
             # Return the raw int values if requested
             return x, y, z
         else:
             # Convert the units to uT based on gain and resolution
+            x *= self._lsb_lookup[self._gain_current][self._res_current][0]
+            y *= self._lsb_lookup[self._gain_current][self._res_current][0]
+            z *= self._lsb_lookup[self._gain_current][self._res_current][1]
             return x, y, z
