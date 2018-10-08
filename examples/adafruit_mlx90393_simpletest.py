@@ -1,18 +1,21 @@
+"""
+Minimal example of getting data from the MLX90393 magnetometer.
+"""
+import time
 import busio
 import board
-import time
 
 from adafruit_mlx90393 import MLX90393
 
-i2c = busio.I2C(board.SCL, board.SDA)
-sensor = MLX90393(i2c, debug=False)
+I2C_BUS = busio.I2C(board.SCL, board.SDA)
+SENSOR = MLX90393(I2C_BUS, debug=False)
 
 while True:
-    x, y, z = sensor.read_data(delay=1.0, raw=False)
+    MX, MY, MZ = SENSOR.read_data(delay=1.0, raw=False)
     print("[{}]".format(time.monotonic()))
-    print("X: {} uT".format(x))
-    print("Y: {} uT".format(y))
-    print("Z: {} uT".format(z))
-    # Display the status field if something odd happened
-    if (sensor.last_status > 0):
-        print("S: {}".format(hex(sensor.last_status)))
+    print("X: {} uT".format(MX))
+    print("Y: {} uT".format(MY))
+    print("Z: {} uT".format(MZ))
+    # Display the status field if > 3
+    if SENSOR.last_status > 3:
+        SENSOR.display_status()

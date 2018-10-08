@@ -43,7 +43,6 @@ except ImportError:
 
 from adafruit_bus_device.i2c_device import I2CDevice
 from micropython import const
-from array import array
 
 __version__ = "0.0.0-auto.0"
 __repo__ = "https://github.com/adafruit/Adafruit_CircuitPython_MLX90393.git"
@@ -126,23 +125,23 @@ class MLX90393:
         self.reset()
         # Set gain to 1.667x by default */
         self._transceive(bytes([0x60,
-                               0x00,
-                               self._gain_current << _GAIN_SHIFT | _HALLCONF,
-                               0x00]))
+                                0x00,
+                                self._gain_current << _GAIN_SHIFT | _HALLCONF,
+                                0x00]))
 
-    def _transceive(self, payload, len=0):
+    def _transceive(self, payload, rxlen=0):
         """
         Writes the specified 'payload' to the sensor
         Returns the results of the write attempt.
         :param bytearray payload: The byte array to write to the sensor
-        :param len: (optional) The numbers of bytes to read back (default=3)
+        :param rxlen: (optional) The numbers of bytes to read back (default=0)
         """
         # Write 'value' to the specified register
         with self.i2c_device as i2c:
             i2c.write(payload)
 
         # Read the response (+1 to account for the mandatory status byte!)
-        data = bytearray(len+1)
+        data = bytearray(rxlen+1)
         while True:
             # While busy, the sensor doesn't respond to reads.
             try:
@@ -170,25 +169,25 @@ class MLX90393:
         """
         return self._status_last
 
-    def display_status(self, status):
+    def display_status(self):
         """
-        Prints out the content of the status byte in a human-readble
+        Prints out the content of the last status byte in a human-readble
         format.
-        :param status: The 8-bit status byte to parse and print.
         """
-        print("BURST Mode               :", (status & (1 << 7)) != 0)
-        print("WOC Mode                 :", (status & (1 << 6)) != 0)
-        print("SM Mode                  :", (status & (1 << 5)) != 0)
-        print("Error                    :", (status & (1 << 4)) != 0)
-        print("Single error detection   :", (status & (1 << 3)) != 0)
-        print("Reset status             :", (status & (1 << 2)) != 0)
-        print("Response bytes available :", status & 0b11)
+        print("STATUS register = 0x{0:02X}".format(self._status_last))
+        print("BURST Mode               :", (self._status_last & (1 << 7)) > 0)
+        print("WOC Mode                 :", (self._status_last & (1 << 6)) > 0)
+        print("SM Mode                  :", (self._status_last & (1 << 5)) > 0)
+        print("Error                    :", (self._status_last & (1 << 4)) > 0)
+        print("Single error detection   :", (self._status_last & (1 << 3)) > 0)
+        print("Reset status             :", (self._status_last & (1 << 2)) > 0)
+        print("Response bytes available :", self._status_last & 0b11)
 
     def reset(self):
         """
         Performs a software reset of the sensor.
         """
-        if (self._debug):
+        if self._debug:
             print("Resetting sensor")
         time.sleep(2)
         _status_last = self._transceive(bytes([_CMD_RT]))
@@ -205,14 +204,14 @@ class MLX90393:
         # Read 6 bytes back from 0x4E
         data = self._transceive(bytes([_CMD_RM | _CMD_AXIS_ALL]), 6)
         # Parse the data (status byte, 3 * signed 16-bit integers)
-        self._status_last, x, y, z = struct.unpack(">Bhhh", data)
+        self._status_last, m_x, m_y, m_z = struct.unpack(">Bhhh", data)
 
         if raw:
             # Return the raw int values if requested
-            return x, y, z
-        else:
-            # Convert the units to uT based on gain and resolution
-            x *= self._lsb_lookup[self._gain_current][self._res_current][0]
-            y *= self._lsb_lookup[self._gain_current][self._res_current][0]
-            z *= self._lsb_lookup[self._gain_current][self._res_current][1]
-            return x, y, z
+            return m_x, m_y, m_z
+
+        # Convert the units to uT based on gain and resolution
+        m_x *= self._lsb_lookup[self._gain_current][self._res_current][0]
+        m_y *= self._lsb_lookup[self._gain_current][self._res_current][0]
+        m_z *= self._lsb_lookup[self._gain_current][self._res_current][1]
+        return m_x, m_y, m_z
