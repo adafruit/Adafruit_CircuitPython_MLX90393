@@ -1,16 +1,16 @@
 Introduction
 ============
 
-.. image:: https://readthedocs.org/projects/circuitpython-adafruit_circuitpython_mlx90393/badge/?version=latest
-    :target: https://circuitpython-adafruit_circuitpython_mlx90393.readthedocs.io/
+.. image:: https://readthedocs.org/projects/circuitpython-mlx90393/badge/?version=latest
+    :target: https://circuitpython-mlx90393.readthedocs.io/
     :alt: Documentation Status
 
 .. image:: https://img.shields.io/discord/327254708534116352.svg
     :target: https://discord.gg/nBQh6qu
     :alt: Discord
 
-.. image:: https://travis-ci.org/adafruit/CircuitPython_Adafruit_CircuitPython_MLX90393.svg?branch=master
-    :target: https://travis-ci.org/adafruit/CircuitPython_Adafruit_CircuitPython_MLX90393
+.. image:: https://travis-ci.org/adafruit/Adafruit_CircuitPython_MLX90393.svg?branch=master
+    :target: https://travis-ci.org/adafruit/Adafruit_CircuitPython_MLX90393
     :alt: Build Status
 
 Adafruit CircuitPython driver for the MLX90393 3-axis magnetometer.
@@ -54,7 +54,7 @@ Contributing
 ============
 
 Contributions are welcome! Please read our `Code of Conduct
-<https://github.com/adafruit/CircuitPython_Adafruit_CircuitPython_MLX90393/blob/master/CODE_OF_CONDUCT.md>`_
+<https://github.com/adafruit/Adafruit_CircuitPython_MLX90393/blob/master/CODE_OF_CONDUCT.md>`_
 before contributing to help this project stay welcoming.
 
 Building locally
@@ -82,7 +82,7 @@ Then run the build:
 
 .. code-block:: shell
 
-    circuitpython-build-bundles --filename_prefix circuitpython-adafruit_circuitpython_mlx90393 --library_location .
+    circuitpython-build-bundles --filename_prefix adafruit_circuitpython_mlx90393 --library_location .
 
 Sphinx documentation
 -----------------------
