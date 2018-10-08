@@ -119,6 +119,7 @@ class MLX90393:
     :param int gain: (optional) The gain level to apply.
     :param bool debug: (optional) Enable debug output.
     """
+
     def __init__(self, i2c_bus, address=0x0C, gain=GAIN_1X, debug=False):
         self.i2c_device = I2CDevice(i2c_bus, address)
         self._debug = debug

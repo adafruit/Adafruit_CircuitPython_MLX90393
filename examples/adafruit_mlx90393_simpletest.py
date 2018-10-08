@@ -1,6 +1,3 @@
-"""
-Minimal example of getting data from the MLX90393 magnetometer.
-"""
 import time
 import busio
 import board
