@@ -86,6 +86,30 @@ _HALLCONF = const(0x0C)     # Hall plate spinning rate adjust.
 
 STATUS_OK = 0x3
 
+# The lookup table below allows you to convert raw sensor data to uT
+# using the appropriate (gain/resolution-dependant) lsb-per-uT
+# coefficient below. Note that the W axis has a different coefficient
+# than the x and y axis.
+_LSB_LOOKUP = (
+    # 5x gain: res0(xy)(z), res1(xy)(z), res2(xy)(z), res3(xy)(z)
+    ((0.805, 1.468), (1.610, 2.936), (3.220, 5.872), (6.440, 11.744)),
+    # 4x gain: res0(xy)(z), res1(xy)(z), res2(xy)(z), res3(xy)(z)
+    ((0.644, 1.174), (1.288, 2.349), (2.576, 4.698), (5.152, 9.395)),
+    # 3x gain: res0(xy)(z), res1(xy)(z), res2(xy)(z), res3(xy)(z)
+    ((0.483, 0.881), (0.966, 1.762), (1.932, 3.523), (3.864, 7.046)),
+    # 2.5x gain: res0(xy)(z), res1(xy)(z), res2(xy)(z), res3(xy)(z)
+    ((0.403, 0.734), (0.805, 1.468), (1.610, 2.936), (3.220, 5.872)),
+    # 2x gain: res0(xy)(z), res1(xy)(z), res2(xy)(z), res3(xy)(z)
+    ((0.322, 0.587), (0.644, 1.174), (1.288, 2.349), (2.576, 4.698)),
+    # 1.667x gain: res0(xy)(z), res1(xy)(z), res2(xy)(z), res3(xy)(z)
+    ((0.268, 0.489), (0.537, 0.979), (1.073, 1.957), (2.147, 3.915)),
+    # 1.333x gain: res0(xy)(z), res1(xy)(z), res2(xy)(z), res3(xy)(z)
+    ((0.215, 0.391), (0.429, 0.783), (0.859, 1.566), (1.717, 3.132)),
+    # 1x gain: res0(xy)(z), res1(xy)(z), res2(xy)(z), res3(xy)(z)
+    ((0.161, 0.294), (0.322, 0.587), (0.644, 1.174), (1.288, 2.349))
+)
+
+
 class MLX90393:
     """
     Driver for the MLX90393 magnetometer.
@@ -99,37 +123,13 @@ class MLX90393:
         self.i2c_device = I2CDevice(i2c_bus, address)
         self._debug = debug
         self._status_last = 0
-        self._gain_current = gain
         self._res_current = _RES_2_15
-        # The lookup table below allows you to convert raw sensor data to uT
-        # using the appropriate (gain/resolution-dependant) lsb-per-uT
-        # coefficient below. Note that the W axis has a different coefficient
-        # than the x and y axis.
-        self._lsb_lookup = [
-            # 5x gain: res0[xy][z], res1[xy][z], res2[xy][z], res3[xy][z]
-            [[0.805, 1.468], [1.610, 2.936], [3.220, 5.872], [6.440, 11.744]],
-            # 4x gain: res0[xy][z], res1[xy][z], res2[xy][z], res3[xy][z]
-            [[0.644, 1.174], [1.288, 2.349], [2.576, 4.698], [5.152, 9.395]],
-            # 3x gain: res0[xy][z], res1[xy][z], res2[xy][z], res3[xy][z]
-            [[0.483, 0.881], [0.966, 1.762], [1.932, 3.523], [3.864, 7.046]],
-            # 2.5x gain: res0[xy][z], res1[xy][z], res2[xy][z], res3[xy][z]
-            [[0.403, 0.734], [0.805, 1.468], [1.610, 2.936], [3.220, 5.872]],
-            # 2x gain: res0[xy][z], res1[xy][z], res2[xy][z], res3[xy][z]
-            [[0.322, 0.587], [0.644, 1.174], [1.288, 2.349], [2.576, 4.698]],
-            # 1.667x gain: res0[xy][z], res1[xy][z], res2[xy][z], res3[xy][z]
-            [[0.268, 0.489], [0.537, 0.979], [1.073, 1.957], [2.147, 3.915]],
-            # 1.333x gain: res0[xy][z], res1[xy][z], res2[xy][z], res3[xy][z]
-            [[0.215, 0.391], [0.429, 0.783], [0.859, 1.566], [1.717, 3.132]],
-            # 1x gain: res0[xy][z], res1[xy][z], res2[xy][z], res3[xy][z]
-            [[0.161, 0.294], [0.322, 0.587], [0.644, 1.174], [1.288, 2.349]]
-        ]
+
         # Put the device in a known state to start
         self.reset()
-        # Set gain to 1.667x by default */
-        self._transceive(bytes([0x60,
-                                0x00,
-                                self._gain_current << _GAIN_SHIFT | _HALLCONF,
-                                0x00]))
+
+        # Set gain to the supplied level
+        self.gain = gain
 
     def _transceive(self, payload, rxlen=0):
         """
@@ -170,6 +170,28 @@ class MLX90393:
         Returns the last status byte received from the sensor.
         """
         return self._status_last
+
+    @property
+    def gain(self):
+        """
+        Gets the current gain setting for the device.
+        """
+        return self._gain_current
+
+    @gain.setter
+    def gain(self, value):
+        """
+        Sets the gain for the device.
+        """
+        if value > GAIN_1X or value < GAIN_5X:
+            raise ValueError("Invalid GAIN setting")
+        if self._debug:
+            print("\tSetting gain: {}".format(value))
+        self._gain_current = value
+        self._transceive(bytes([0x60,
+                                0x00,
+                                self._gain_current << _GAIN_SHIFT | _HALLCONF,
+                                0x00]))
 
     def display_status(self):
         """
@@ -216,7 +238,7 @@ class MLX90393:
             return m_x, m_y, m_z
 
         # Convert the units to uT based on gain and resolution
-        m_x *= self._lsb_lookup[self._gain_current][self._res_current][0]
-        m_y *= self._lsb_lookup[self._gain_current][self._res_current][0]
-        m_z *= self._lsb_lookup[self._gain_current][self._res_current][1]
+        m_x *= _LSB_LOOKUP[self._gain_current][self._res_current][0]
+        m_y *= _LSB_LOOKUP[self._gain_current][self._res_current][0]
+        m_z *= _LSB_LOOKUP[self._gain_current][self._res_current][1]
         return m_x, m_y, m_z
