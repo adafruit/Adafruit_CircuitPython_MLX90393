@@ -88,7 +88,7 @@ STATUS_OK = 0x3
 
 # The lookup table below allows you to convert raw sensor data to uT
 # using the appropriate (gain/resolution-dependant) lsb-per-uT
-# coefficient below. Note that the W axis has a different coefficient
+# coefficient below. Note that the z axis has a different coefficient
 # than the x and y axis.
 _LSB_LOOKUP = (
     # 5x gain: res0(xy)(z), res1(xy)(z), res2(xy)(z), res3(xy)(z)
@@ -124,12 +124,13 @@ class MLX90393:
         self._debug = debug
         self._status_last = 0
         self._res_current = _RES_2_15
+        self._gain_current = gain
 
         # Put the device in a known state to start
         self.reset()
 
         # Set gain to the supplied level
-        self.gain = gain
+        self.gain = self._gain_current
 
     def _transceive(self, payload, rxlen=0):
         """
