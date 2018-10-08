@@ -66,14 +66,14 @@ _CMD_REG_CONF2 = const(0x01)  # Burst, comm mode
 _CMD_REG_CONF3 = const(0x02)  # Oversampling, Filter, Resolution
 _CMD_REG_CONF4 = const(0x03)  # Sensitivity drift
 
-_GAIN_5X = const(0x0)
-_GAIN_4X = const(0x1)
-_GAIN_3X = const(0x2)
-_GAIN_2_5X = const(0x3)
-_GAIN_2X = const(0x4)
-_GAIN_1_67X = const(0x5)
-_GAIN_1_33X = const(0x6)
-_GAIN_1X = const(0x7)
+GAIN_5X = 0x0
+GAIN_4X = 0x1
+GAIN_3X = 0x2
+GAIN_2_5X = 0x3
+GAIN_2X = 0x4
+GAIN_1_67X = 0x5
+GAIN_1_33X = 0x6
+GAIN_1X = 0x7
 _GAIN_SHIFT = const(4)
 
 _RES_2_15 = const(0)   # +/- 2^15
@@ -84,6 +84,7 @@ _RES_SHIFT = const(5)
 
 _HALLCONF = const(0x0C)     # Hall plate spinning rate adjust.
 
+STATUS_OK = 0x3
 
 class MLX90393:
     """
@@ -91,16 +92,17 @@ class MLX90393:
     :param i2c_bus: The `busio.I2C` object to use. This is the only
     required parameter.
     :param int address: (optional) The I2C address of the device.
+    :param int gain: (optional) The gain level to apply.
     :param bool debug: (optional) Enable debug output.
     """
-    def __init__(self, i2c_bus, address=0x0C, debug=False):
+    def __init__(self, i2c_bus, address=0x0C, gain=GAIN_1X, debug=False):
         self.i2c_device = I2CDevice(i2c_bus, address)
         self._debug = debug
         self._status_last = 0
-        self._gain_current = _GAIN_1_67X
+        self._gain_current = gain
         self._res_current = _RES_2_15
         # The lookup table below allows you to convert raw sensor data to uT
-        # using the approrpiate (gain/resolution-dependant) lsb-per-uT
+        # using the appropriate (gain/resolution-dependant) lsb-per-uT
         # coefficient below. Note that the W axis has a different coefficient
         # than the x and y axis.
         self._lsb_lookup = [
@@ -174,6 +176,9 @@ class MLX90393:
         Prints out the content of the last status byte in a human-readble
         format.
         """
+        avail = 0
+        if self._status_last & 0b11 > 0:
+            avail = 2 * (self._status_last & 0b11) + 2
         print("STATUS register = 0x{0:02X}".format(self._status_last))
         print("BURST Mode               :", (self._status_last & (1 << 7)) > 0)
         print("WOC Mode                 :", (self._status_last & (1 << 6)) > 0)
@@ -181,7 +186,7 @@ class MLX90393:
         print("Error                    :", (self._status_last & (1 << 4)) > 0)
         print("Single error detection   :", (self._status_last & (1 << 3)) > 0)
         print("Reset status             :", (self._status_last & (1 << 2)) > 0)
-        print("Response bytes available :", self._status_last & 0b11)
+        print("Response bytes available :", avail)
 
     def reset(self):
         """
