@@ -22,19 +22,29 @@
 """
 `adafruit_mlx90393`
 ====================================================
+
 This is a breakout for the Adafruit MLX90393 magnetometer sensor breakout.
+
 * Author(s): ktown
+
 Implementation Notes
 --------------------
+
 **Hardware:**
+
 * Adafruit `MLX90393 Magnetometer Sensor Breakout Board
   <https://www.adafruit.com/product/XXXX>`_ (Product ID: XXXX)
+
 **Software and Dependencies:**
+
 * Adafruit CircuitPython firmware for the supported boards:
   https://github.com/adafruit/circuitpython/releases
+
 * Adafruit's Bus Device library:
   https://github.com/adafruit/Adafruit_CircuitPython_BusDevice
+
 """
+
 import time
 try:
     import struct
