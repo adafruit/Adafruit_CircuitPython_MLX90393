@@ -33,7 +33,7 @@ Implementation Notes
 **Hardware:**
 
 * Adafruit `MLX90393 Magnetometer Sensor Breakout Board
-  <https://www.adafruit.com/product/XXXX>`_ (Product ID: XXXX)
+  <https://www.adafruit.com/product/4022>`_ (Product ID: 4022)
 
 **Software and Dependencies:**
 
