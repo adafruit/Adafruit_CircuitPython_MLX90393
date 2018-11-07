@@ -1,7 +1,7 @@
 Introduction
 ============
 
-.. image:: https://readthedocs.org/projects/circuitpython-mlx90393/badge/?version=latest
+.. image:: https://readthedocs.org/projects/adafruit-circuitpython-mlx90393/badge/?version=latest
     :target: https://circuitpython.readthedocs.io/projects/mlx90393/en/latest/
     :alt: Documentation Status
 
