@@ -30,4 +30,4 @@ script:
   examples/*.py)
 - circuitpython-build-bundles --filename_prefix adafruit_circuitpython_mlx90393 --library_location
   .
-- cd docs && sphinx-build -E -W -b html . _build/html
+- cd docs && sphinx-build -E -W -b html . _build/html && cd ..
