@@ -9,8 +9,8 @@ Introduction
     :target: https://discord.gg/nBQh6qu
     :alt: Discord
 
-.. image:: https://travis-ci.org/adafruit/Adafruit_CircuitPython_MLX90393.svg?branch=master
-    :target: https://travis-ci.org/adafruit/Adafruit_CircuitPython_MLX90393
+.. image:: https://travis-ci.com/adafruit/Adafruit_CircuitPython_MLX90393.svg?branch=master
+    :target: https://travis-ci.com/adafruit/Adafruit_CircuitPython_MLX90393
     :alt: Build Status
 
 Adafruit CircuitPython driver for the MLX90393 3-axis magnetometer.
