@@ -99,24 +99,24 @@ STATUS_OK = 0x3
 # The lookup table below allows you to convert raw sensor data to uT
 # using the appropriate (gain/resolution-dependant) lsb-per-uT
 # coefficient below. Note that the z axis has a different coefficient
-# than the x and y axis.
+# than the x and y axis. Assumes HALLCONF = 0x0C!
 _LSB_LOOKUP = (
     # 5x gain: res0(xy)(z), res1(xy)(z), res2(xy)(z), res3(xy)(z)
-    ((0.805, 1.468), (1.610, 2.936), (3.220, 5.872), (6.440, 11.744)),
+    ((0.751, 1.210), (1.502, 2.420), (3.004, 4.840), (6.009, 9.680)),
     # 4x gain: res0(xy)(z), res1(xy)(z), res2(xy)(z), res3(xy)(z)
-    ((0.644, 1.174), (1.288, 2.349), (2.576, 4.698), (5.152, 9.395)),
+    ((0.601, 0.968), (1.202, 1.936), (2.403, 3.872), (4.840, 7.744)),
     # 3x gain: res0(xy)(z), res1(xy)(z), res2(xy)(z), res3(xy)(z)
-    ((0.483, 0.881), (0.966, 1.762), (1.932, 3.523), (3.864, 7.046)),
+    ((0.451, 0.726), (0.901, 1.452), (1.803, 2.904), (3.605, 5.808)),
     # 2.5x gain: res0(xy)(z), res1(xy)(z), res2(xy)(z), res3(xy)(z)
-    ((0.403, 0.734), (0.805, 1.468), (1.610, 2.936), (3.220, 5.872)),
+    ((0.376, 0.605), (0.751, 1.210), (1.502, 2.420), (3.004, 4.840)),
     # 2x gain: res0(xy)(z), res1(xy)(z), res2(xy)(z), res3(xy)(z)
-    ((0.322, 0.587), (0.644, 1.174), (1.288, 2.349), (2.576, 4.698)),
+    ((0.300, 0.484), (0.601, 0.968), (1.202, 1.936), (2.403, 3.872)),
     # 1.667x gain: res0(xy)(z), res1(xy)(z), res2(xy)(z), res3(xy)(z)
-    ((0.268, 0.489), (0.537, 0.979), (1.073, 1.957), (2.147, 3.915)),
+    ((0.250, 0.403), (0.501, 0.807), (1.001, 1.613), (2.003, 3.227)),
     # 1.333x gain: res0(xy)(z), res1(xy)(z), res2(xy)(z), res3(xy)(z)
-    ((0.215, 0.391), (0.429, 0.783), (0.859, 1.566), (1.717, 3.132)),
+    ((0.200, 0.323), (0.401, 0.645), (0.801, 1.291), (1.602, 2.581)),
     # 1x gain: res0(xy)(z), res1(xy)(z), res2(xy)(z), res3(xy)(z)
-    ((0.161, 0.294), (0.322, 0.587), (0.644, 1.174), (1.288, 2.349))
+    ((0.150, 0.242), (0.300, 0.484), (0.601, 0.968), (1.202, 1.936))
 )
 
 
@@ -143,7 +143,8 @@ class MLX90393:
         # Set gain to the supplied level
         self.gain = self._gain_current
 
-    def _transceive(self, payload, rxlen=0):
+
+    def _transceive(self, payload, rxlen=0, delay=0.01):
         """
         Writes the specified 'payload' to the sensor
         Returns the results of the write attempt.
@@ -153,6 +154,9 @@ class MLX90393:
         # Write 'value' to the specified register
         with self.i2c_device as i2c:
             i2c.write(payload)
+
+        # Insert a delay since we aren't using INTs for DRDY
+        time.sleep(delay)
 
         # Read the response (+1 to account for the mandatory status byte!)
         data = bytearray(rxlen+1)
@@ -176,6 +180,7 @@ class MLX90393:
             print("\t  Status :", hex(data[0]))
         return data
 
+
     @property
     def last_status(self):
         """
@@ -183,12 +188,14 @@ class MLX90393:
         """
         return self._status_last
 
+
     @property
     def gain(self):
         """
         Gets the current gain setting for the device.
         """
         return self._gain_current
+
 
     @gain.setter
     def gain(self, value):
@@ -200,10 +207,11 @@ class MLX90393:
         if self._debug:
             print("\tSetting gain: {}".format(value))
         self._gain_current = value
-        self._transceive(bytes([0x60,
+        self._transceive(bytes([_CMD_WR,
                                 0x00,
                                 self._gain_current << _GAIN_SHIFT | _HALLCONF,
-                                0x00]))
+                                (_CMD_REG_CONF1 & 0x3F) << 2]))
+
 
     def display_status(self):
         """
@@ -222,6 +230,30 @@ class MLX90393:
         print("Reset status             :", (self._status_last & (1 << 2)) > 0)
         print("Response bytes available :", avail)
 
+
+    def read_reg(self, reg):
+        """
+        Gets the current value of the specified register.
+        """
+        # Write 'value' to the specified register
+        payload = bytes([_CMD_RR, reg << 2])
+        with self.i2c_device as i2c:
+            i2c.write(payload)
+
+        # Read the response (+1 to account for the mandatory status byte!)
+        data = bytearray(3)
+        with self.i2c_device as i2c:
+            i2c.readinto(data)
+        # Unpack data (status byte, big-endian 16-bit register value)
+        self._status_last, val = struct.unpack(">Bh", data)
+        if self._debug:
+            print("\t[{}]".format(time.monotonic()))
+            print("\t Writing :", [hex(b) for b in payload])
+            print("\tResponse :", [hex(b) for b in data])
+            print("\t  Status :", hex(data[0]))
+        return val
+
+
     def reset(self):
         """
         Performs a software reset of the sensor.
@@ -232,25 +264,25 @@ class MLX90393:
         _status_last = self._transceive(bytes([_CMD_RT]))
         return _status_last
 
-    def read_data(self, delay=0.0, raw=False):
+
+    def read_data(self, raw=False):
         """
         Reads a single X/Y/Z sample from the magnetometer.
         """
         # Set the device to single measurement mode
         self._transceive(bytes([_CMD_SM | _CMD_AXIS_ALL]))
-        # Wait a bit
-        time.sleep(delay)
-        # Read 6 bytes back from 0x4E
+
+        # Read the 'XYZ' data as three signed 16-bit integers
         data = self._transceive(bytes([_CMD_RM | _CMD_AXIS_ALL]), 6)
-        # Parse the data (status byte, 3 * signed 16-bit integers)
         self._status_last, m_x, m_y, m_z = struct.unpack(">Bhhh", data)
 
         if raw:
             # Return the raw int values if requested
             return m_x, m_y, m_z
 
-        # Convert the units to uT based on gain and resolution
+        # Convert the raw integer values to uT based on gain and resolution
         m_x *= _LSB_LOOKUP[self._gain_current][self._res_current][0]
         m_y *= _LSB_LOOKUP[self._gain_current][self._res_current][0]
         m_z *= _LSB_LOOKUP[self._gain_current][self._res_current][1]
+
         return m_x, m_y, m_z
