@@ -66,7 +66,7 @@ Usage Example
     SENSOR = adafruit_mlx90393.MLX90393(I2C_BUS, gain=adafruit_mlx90393.GAIN_1X)
 
     while True:
-        MX, MY, MZ = SENSOR.read_data(raw=False)
+        MX, MY, MZ = SENSOR.magnetic()
         print("[{}]".format(time.monotonic()))
         print("X: {} uT".format(MX))
         print("Y: {} uT".format(MY))

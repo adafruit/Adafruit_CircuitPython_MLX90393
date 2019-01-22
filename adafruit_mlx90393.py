@@ -171,7 +171,7 @@ class MLX90393:
             except OSError:
                 pass
         # Track status byte
-        _status_last = data[0]
+        self._status_last = data[0]
         # Unpack data (status byte, big-endian 16-bit register value)
         if self._debug:
             print("\t[{}]".format(time.monotonic()))
@@ -261,11 +261,11 @@ class MLX90393:
         if self._debug:
             print("Resetting sensor")
         time.sleep(2)
-        _status_last = self._transceive(bytes([_CMD_RT]))
-        return _status_last
+        self._status_last = self._transceive(bytes([_CMD_RT]))
+        return self._status_last
 
 
-    def read_data(self, raw=False):
+    def read_data(self):
         """
         Reads a single X/Y/Z sample from the magnetometer.
         """
@@ -276,9 +276,16 @@ class MLX90393:
         data = self._transceive(bytes([_CMD_RM | _CMD_AXIS_ALL]), 6)
         self._status_last, m_x, m_y, m_z = struct.unpack(">Bhhh", data)
 
-        if raw:
-            # Return the raw int values if requested
-            return m_x, m_y, m_z
+        # Return the raw int values if requested
+        return m_x, m_y, m_z
+
+
+    def magnetic(self):
+        """
+        The processed magnetometer sensor values.
+        A 3-tuple of X, Y, Z axis values in microteslas that are signed floats.
+        """
+        m_x, m_y, m_z = self.read_data()
 
         # Convert the raw integer values to uT based on gain and resolution
         m_x *= _LSB_LOOKUP[self._gain_current][self._res_current][0]
