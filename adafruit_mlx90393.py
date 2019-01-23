@@ -265,6 +265,7 @@ class MLX90393:
         return self._status_last
 
 
+    @property
     def read_data(self):
         """
         Reads a single X/Y/Z sample from the magnetometer.
@@ -277,19 +278,20 @@ class MLX90393:
         self._status_last, m_x, m_y, m_z = struct.unpack(">Bhhh", data)
 
         # Return the raw int values if requested
-        return m_x, m_y, m_z
+        return (m_x, m_y, m_z)
 
 
+    @property
     def magnetic(self):
         """
         The processed magnetometer sensor values.
         A 3-tuple of X, Y, Z axis values in microteslas that are signed floats.
         """
-        m_x, m_y, m_z = self.read_data()
+        x, y, z = self.read_data
 
         # Convert the raw integer values to uT based on gain and resolution
-        m_x *= _LSB_LOOKUP[self._gain_current][self._res_current][0]
-        m_y *= _LSB_LOOKUP[self._gain_current][self._res_current][0]
-        m_z *= _LSB_LOOKUP[self._gain_current][self._res_current][1]
+        x *= _LSB_LOOKUP[self._gain_current][self._res_current][0]
+        y *= _LSB_LOOKUP[self._gain_current][self._res_current][0]
+        z *= _LSB_LOOKUP[self._gain_current][self._res_current][1]
 
-        return m_x, m_y, m_z
+        return x, y, z
