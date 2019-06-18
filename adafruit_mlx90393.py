@@ -144,32 +144,36 @@ class MLX90393:
         self.gain = self._gain_current
 
 
-    def _transceive(self, payload, rxlen=0, delay=0.01):
+    def _transceive(self, payload, rxlen=0):
         """
         Writes the specified 'payload' to the sensor
         Returns the results of the write attempt.
         :param bytearray payload: The byte array to write to the sensor
         :param rxlen: (optional) The numbers of bytes to read back (default=0)
         """
-        # Write 'value' to the specified register
-        with self.i2c_device as i2c:
-            i2c.write(payload)
-
-        # Insert a delay since we aren't using INTs for DRDY
-        time.sleep(delay)
-
         # Read the response (+1 to account for the mandatory status byte!)
         data = bytearray(rxlen+1)
-        while True:
-            # While busy, the sensor doesn't respond to reads.
-            try:
-                with self.i2c_device as i2c:
-                    i2c.readinto(data)
-                    # Make sure we have something in the response
-                    if data[0]:
-                        break
-            except OSError:
-                pass
+
+        if len(payload) == 1:
+            # Transceive with repeated start
+            with self.i2c_device as i2c:
+                i2c.write_then_readinto(payload, data, stop=False)
+        else:
+            # Write 'value' to the specified register
+            with self.i2c_device as i2c:
+                i2c.write(payload, stop=False)
+
+            while True:
+                # While busy, the sensor doesn't respond to reads.
+                try:
+                    with self.i2c_device as i2c:
+                        i2c.readinto(data)
+                        # Make sure we have something in the response
+                        if data[0]:
+                            break
+                except OSError:
+                    pass
+
         # Track status byte
         self._status_last = data[0]
         # Unpack data (status byte, big-endian 16-bit register value)
@@ -262,16 +266,24 @@ class MLX90393:
             print("Resetting sensor")
         time.sleep(2)
         self._status_last = self._transceive(bytes([_CMD_RT]))
+        # burn a read post reset
+        try:
+            self.magnetic
+        except OSError:
+            pass
         return self._status_last
 
 
     @property
-    def read_data(self):
+    def read_data(self, delay=0.01):
         """
         Reads a single X/Y/Z sample from the magnetometer.
         """
         # Set the device to single measurement mode
         self._transceive(bytes([_CMD_SM | _CMD_AXIS_ALL]))
+
+        # Insert a delay since we aren't using INTs for DRDY
+        time.sleep(delay)
 
         # Read the 'XYZ' data as three signed 16-bit integers
         data = self._transceive(bytes([_CMD_RM | _CMD_AXIS_ALL]), 6)
