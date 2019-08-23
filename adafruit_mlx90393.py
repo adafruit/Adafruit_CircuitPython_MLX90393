@@ -157,9 +157,10 @@ class MLX90393:
         if len(payload) == 1:
             # Transceive with repeated start
             with self.i2c_device as i2c:
-                i2c.write_then_readinto(payload, data, stop=False)
+                i2c.write_then_readinto(payload, data)
         else:
             # Write 'value' to the specified register
+            # TODO: Check this. It's weird that the write is accepted but the read is naked.
             with self.i2c_device as i2c:
                 i2c.write(payload, stop=False)
 
