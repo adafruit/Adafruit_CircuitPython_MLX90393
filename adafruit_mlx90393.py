@@ -46,6 +46,7 @@ Implementation Notes
 """
 
 import time
+
 try:
     import struct
 except ImportError:
@@ -57,19 +58,19 @@ from micropython import const
 __version__ = "0.0.0-auto.0"
 __repo__ = "https://github.com/adafruit/Adafruit_CircuitPython_MLX90393.git"
 
-_CMD_SB = const(0b00010000)   # Start burst mode
-_CMD_SW = const(0b00100000)   # Start wakeup on change mode
-_CMD_SM = const(0b00110000)   # Start single-measurement mode
-_CMD_RM = const(0b01000000)   # Read measurement
-_CMD_RR = const(0b01010000)   # Read register
-_CMD_WR = const(0b01100000)   # Write register
-_CMD_EX = const(0b10000000)   # Exit mode
-_CMD_HR = const(0b11010000)   # Memory recall
-_CMD_HS = const(0b11100000)   # Memory store
-_CMD_RT = const(0b11110000)   # Reset
-_CMD_NOP = const(0x00)        # NOP
+_CMD_SB = const(0b00010000)  # Start burst mode
+_CMD_SW = const(0b00100000)  # Start wakeup on change mode
+_CMD_SM = const(0b00110000)  # Start single-measurement mode
+_CMD_RM = const(0b01000000)  # Read measurement
+_CMD_RR = const(0b01010000)  # Read register
+_CMD_WR = const(0b01100000)  # Write register
+_CMD_EX = const(0b10000000)  # Exit mode
+_CMD_HR = const(0b11010000)  # Memory recall
+_CMD_HS = const(0b11100000)  # Memory store
+_CMD_RT = const(0b11110000)  # Reset
+_CMD_NOP = const(0x00)  # NOP
 
-_CMD_AXIS_ALL = const(0xE)    # X+Y+Z axis bits for commands
+_CMD_AXIS_ALL = const(0xE)  # X+Y+Z axis bits for commands
 
 _CMD_REG_CONF1 = const(0x00)  # Gain
 _CMD_REG_CONF2 = const(0x01)  # Burst, comm mode
@@ -86,13 +87,13 @@ GAIN_1_33X = 0x6
 GAIN_1X = 0x7
 _GAIN_SHIFT = const(4)
 
-_RES_2_15 = const(0)   # +/- 2^15
+_RES_2_15 = const(0)  # +/- 2^15
 _RES_2_15B = const(1)  # +/- 2^15
 _RES_22000 = const(2)  # +/- 22000
 _RES_11000 = const(3)  # +/- 11000
 _RES_SHIFT = const(5)
 
-_HALLCONF = const(0x0C)     # Hall plate spinning rate adjust.
+_HALLCONF = const(0x0C)  # Hall plate spinning rate adjust.
 
 STATUS_OK = 0x3
 
@@ -116,7 +117,7 @@ _LSB_LOOKUP = (
     # 1.333x gain: res0(xy)(z), res1(xy)(z), res2(xy)(z), res3(xy)(z)
     ((0.200, 0.323), (0.401, 0.645), (0.801, 1.291), (1.602, 2.581)),
     # 1x gain: res0(xy)(z), res1(xy)(z), res2(xy)(z), res3(xy)(z)
-    ((0.150, 0.242), (0.300, 0.484), (0.601, 0.968), (1.202, 1.936))
+    ((0.150, 0.242), (0.300, 0.484), (0.601, 0.968), (1.202, 1.936)),
 )
 
 
@@ -143,7 +144,6 @@ class MLX90393:
         # Set gain to the supplied level
         self.gain = self._gain_current
 
-
     def _transceive(self, payload, rxlen=0):
         """
         Writes the specified 'payload' to the sensor
@@ -152,7 +152,7 @@ class MLX90393:
         :param rxlen: (optional) The numbers of bytes to read back (default=0)
         """
         # Read the response (+1 to account for the mandatory status byte!)
-        data = bytearray(rxlen+1)
+        data = bytearray(rxlen + 1)
 
         if len(payload) == 1:
             # Transceive with repeated start
@@ -185,7 +185,6 @@ class MLX90393:
             print("\t  Status :", hex(data[0]))
         return data
 
-
     @property
     def last_status(self):
         """
@@ -193,14 +192,12 @@ class MLX90393:
         """
         return self._status_last
 
-
     @property
     def gain(self):
         """
         Gets the current gain setting for the device.
         """
         return self._gain_current
-
 
     @gain.setter
     def gain(self, value):
@@ -212,11 +209,16 @@ class MLX90393:
         if self._debug:
             print("\tSetting gain: {}".format(value))
         self._gain_current = value
-        self._transceive(bytes([_CMD_WR,
-                                0x00,
-                                self._gain_current << _GAIN_SHIFT | _HALLCONF,
-                                (_CMD_REG_CONF1 & 0x3F) << 2]))
-
+        self._transceive(
+            bytes(
+                [
+                    _CMD_WR,
+                    0x00,
+                    self._gain_current << _GAIN_SHIFT | _HALLCONF,
+                    (_CMD_REG_CONF1 & 0x3F) << 2,
+                ]
+            )
+        )
 
     def display_status(self):
         """
@@ -234,7 +236,6 @@ class MLX90393:
         print("Single error detection   :", (self._status_last & (1 << 3)) > 0)
         print("Reset status             :", (self._status_last & (1 << 2)) > 0)
         print("Response bytes available :", avail)
-
 
     def read_reg(self, reg):
         """
@@ -258,7 +259,6 @@ class MLX90393:
             print("\t  Status :", hex(data[0]))
         return val
 
-
     def reset(self):
         """
         Performs a software reset of the sensor.
@@ -274,12 +274,13 @@ class MLX90393:
             pass
         return self._status_last
 
-
     @property
-    def read_data(self, delay=0.01):
+    def read_data(self):
         """
         Reads a single X/Y/Z sample from the magnetometer.
         """
+        delay = 0.01
+
         # Set the device to single measurement mode
         self._transceive(bytes([_CMD_SM | _CMD_AXIS_ALL]))
 
@@ -292,7 +293,6 @@ class MLX90393:
 
         # Return the raw int values if requested
         return (m_x, m_y, m_z)
-
 
     @property
     def magnetic(self):
