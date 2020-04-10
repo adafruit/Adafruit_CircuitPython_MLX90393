@@ -46,7 +46,7 @@ source_suffix = ".rst"
 master_doc = "index"
 
 # General information about the project.
-project = "Adafruit_CircuitPython_MLX90393 Library"
+project = "Adafruit MLX90393 Library"
 copyright = "2018 Kevin Townsend"
 author = "Kevin Townsend"
 
@@ -122,7 +122,7 @@ html_static_path = ["_static"]
 html_favicon = "_static/favicon.ico"
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = "Adafruit_circuitpython_mlx90393Librarydoc"
+htmlhelp_basename = "AdafruitMLX90393Librarydoc"
 
 # -- Options for LaTeX output ---------------------------------------------
 
@@ -147,8 +147,8 @@ latex_elements = {
 latex_documents = [
     (
         master_doc,
-        "Adafruit_CircuitPython_MLX90393Library.tex",
-        "Adafruit_CircuitPython_MLX90393 Library Documentation",
+        "AdafruitMLX90393Library.tex",
+        "Adafruit MLX90393 Library Documentation",
         author,
         "manual",
     ),
@@ -161,8 +161,8 @@ latex_documents = [
 man_pages = [
     (
         master_doc,
-        "Adafruit_CircuitPython_MLX90393library",
-        "Adafruit_CircuitPython_MLX90393 Library Documentation",
+        "AdafruitMLX90393library",
+        "Adafruit MLX90393 Library Documentation",
         [author],
         1,
     )
