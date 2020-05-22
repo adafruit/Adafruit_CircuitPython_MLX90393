@@ -164,16 +164,13 @@ class MLX90393:
             with self.i2c_device as i2c:
                 i2c.write(payload, stop=False)
 
-            while True:
-                # While busy, the sensor doesn't respond to reads.
-                try:
-                    with self.i2c_device as i2c:
+                while True:
+                    try:
                         i2c.readinto(data)
-                        # Make sure we have something in the response
                         if data[0]:
                             break
-                except OSError:
-                    pass
+                    except OSError:
+                        pass
 
         # Track status byte
         self._status_last = data[0]
