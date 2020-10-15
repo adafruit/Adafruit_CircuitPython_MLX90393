@@ -151,7 +151,8 @@ _TCONV_LOOKUP = (
     (25.65, 50.61, 100.53, 200.37),  # DIF_FILT = 7
 )
 
-class MLX90393: # pylint: disable=too-many-instance-attributes
+
+class MLX90393:  # pylint: disable=too-many-instance-attributes
     """
     Driver for the MLX90393 magnetometer.
     :param i2c_bus: The `busio.I2C` object to use. This is the only
@@ -170,7 +171,7 @@ class MLX90393: # pylint: disable=too-many-instance-attributes
         filt=FILTER_7,
         oversampling=OSR_3,
         debug=False,
-    ): # pylint: disable=too-many-arguments
+    ):  # pylint: disable=too-many-arguments
         self.i2c_device = I2CDevice(i2c_bus, address)
         self._debug = debug
         self._status_last = 0
