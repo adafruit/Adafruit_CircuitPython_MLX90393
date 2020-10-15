@@ -215,8 +215,7 @@ class MLX90393:  # pylint: disable=too-many-instance-attributes
             # Write 'value' to the specified register
             # TODO: Check this. It's weird that the write is accepted but the read is naked.
             with self.i2c_device as i2c:
-                # pylint: disable=unexpected-keyword-arg
-                i2c.write(payload, stop=False)
+                i2c.write(payload)
 
                 while True:
                     try:
