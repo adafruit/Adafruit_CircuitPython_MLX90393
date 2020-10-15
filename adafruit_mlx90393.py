@@ -77,6 +77,7 @@ _CMD_REG_CONF2 = const(0x01)  # Burst, comm mode
 _CMD_REG_CONF3 = const(0x02)  # Oversampling, Filter, Resolution
 _CMD_REG_CONF4 = const(0x03)  # Sensitivity drift
 
+# Gain settings
 GAIN_5X = 0x0
 GAIN_4X = 0x1
 GAIN_3X = 0x2
@@ -87,11 +88,27 @@ GAIN_1_33X = 0x6
 GAIN_1X = 0x7
 _GAIN_SHIFT = const(4)
 
-_RES_2_15 = const(0)  # +/- 2^15
-_RES_2_15B = const(1)  # +/- 2^15
-_RES_22000 = const(2)  # +/- 22000
-_RES_11000 = const(3)  # +/- 11000
-_RES_SHIFT = const(5)
+# Resolution settings
+RESOLUTION_16 = 0x0
+RESOLUTION_17 = 0x1
+RESOLUTION_18 = 0x2
+RESOLUTION_19 = 0x3
+
+# Filter settings
+FILTER_0 = 0x0
+FILTER_1 = 0x1
+FILTER_2 = 0x2
+FILTER_3 = 0x3
+FILTER_4 = 0x4
+FILTER_5 = 0x5
+FILTER_6 = 0x6
+FILTER_7 = 0x7
+
+# Oversampling settings
+OSR_0 = 0x0
+OSR_1 = 0x1
+OSR_2 = 0x2
+OSR_3 = 0x3
 
 _HALLCONF = const(0x0C)  # Hall plate spinning rate adjust.
 
@@ -120,8 +137,22 @@ _LSB_LOOKUP = (
     ((0.150, 0.242), (0.300, 0.484), (0.601, 0.968), (1.202, 1.936)),
 )
 
+# Lookup table for conversion times for different filter and
+# oversampling settings. Values taken from datasheet.
+_TCONV_LOOKUP = (
+    # OSR = 0      1       2       3
+    (1.27, 1.84, 3.00, 5.30),  # DIG_FILT = 0
+    (1.46, 2.23, 3.76, 6.84),  # DIG_FILT = 1
+    (1.84, 3.00, 5.30, 9.91),  # DIG_FILT = 2
+    (2.61, 4.53, 8.37, 16.05),  # DIG_FILT = 3
+    (4.15, 7.60, 14.52, 28.34),  # DIG_FILT = 4
+    (7.22, 13.75, 26.80, 52.92),  # DIG_FILT = 5
+    (13.36, 26.04, 51.38, 102.07),  # DIG_FILT = 6
+    (25.65, 50.61, 100.53, 200.37),  # DIF_FILT = 7
+)
 
-class MLX90393:
+
+class MLX90393:  # pylint: disable=too-many-instance-attributes
     """
     Driver for the MLX90393 magnetometer.
     :param i2c_bus: The `busio.I2C` object to use. This is the only
@@ -131,15 +162,37 @@ class MLX90393:
     :param bool debug: (optional) Enable debug output.
     """
 
-    def __init__(self, i2c_bus, address=0x0C, gain=GAIN_1X, debug=False):
+    def __init__(
+        self,
+        i2c_bus,
+        address=0x0C,
+        gain=GAIN_1X,
+        resolution=RESOLUTION_16,
+        filt=FILTER_7,
+        oversampling=OSR_3,
+        debug=False,
+    ):  # pylint: disable=too-many-arguments
         self.i2c_device = I2CDevice(i2c_bus, address)
         self._debug = debug
         self._status_last = 0
-        self._res_current = _RES_2_15
+        self._res_x = self._res_y = self._res_z = resolution
+        self._filter = filt
+        self._osr = oversampling
         self._gain_current = gain
 
         # Put the device in a known state to start
         self.reset()
+
+        # Set resolution to the supplied level
+        self.resolution_x = self._res_x
+        self.resolution_y = self._res_y
+        self.resolution_z = self._res_z
+
+        # Set filter to the supplied level
+        self.filter = self._filter
+
+        # Set oversampling to the supplied level
+        self.oversampling = self._osr
 
         # Set gain to the supplied level
         self.gain = self._gain_current
@@ -162,6 +215,7 @@ class MLX90393:
             # Write 'value' to the specified register
             # TODO: Check this. It's weird that the write is accepted but the read is naked.
             with self.i2c_device as i2c:
+                # pylint: disable=unexpected-keyword-arg
                 i2c.write(payload, stop=False)
 
                 while True:
@@ -185,22 +239,19 @@ class MLX90393:
     @property
     def last_status(self):
         """
-        Returns the last status byte received from the sensor.
+        The last status byte received from the sensor.
         """
         return self._status_last
 
     @property
     def gain(self):
         """
-        Gets the current gain setting for the device.
+        The gain setting for the device.
         """
         return self._gain_current
 
     @gain.setter
     def gain(self, value):
-        """
-        Sets the gain for the device.
-        """
         if value > GAIN_1X or value < GAIN_5X:
             raise ValueError("Invalid GAIN setting")
         if self._debug:
@@ -216,6 +267,81 @@ class MLX90393:
                 ]
             )
         )
+
+    @property
+    def resolution_x(self):
+        """The X axis resolution."""
+        return self._res_x
+
+    @resolution_x.setter
+    def resolution_x(self, resolution):
+        self._set_resolution(0, resolution)
+        self._res_x = resolution
+
+    @property
+    def resolution_y(self):
+        """The Y axis resolution."""
+        return self._res_y
+
+    @resolution_y.setter
+    def resolution_y(self, resolution):
+        self._set_resolution(1, resolution)
+        self._res_y = resolution
+
+    @property
+    def resolution_z(self):
+        """The Z axis resolution."""
+        return self._res_z
+
+    @resolution_z.setter
+    def resolution_z(self, resolution):
+        self._set_resolution(2, resolution)
+        self._res_z = resolution
+
+    def _set_resolution(self, axis, resolution):
+        if resolution not in (
+            RESOLUTION_16,
+            RESOLUTION_17,
+            RESOLUTION_18,
+            RESOLUTION_19,
+        ):
+            raise ValueError("Incorrect resolution setting.")
+        shift = (5, 7, 9)[axis]
+        mask = (0xFF9F, 0xFE7F, 0xF9FF)[axis]
+        reg = self.read_reg(_CMD_REG_CONF3)
+        reg &= mask
+        reg |= (resolution & 0x3) << shift
+        self.write_reg(_CMD_REG_CONF3, reg)
+
+    @property
+    def filter(self):
+        """The filter level."""
+        return self._filter
+
+    @filter.setter
+    def filter(self, level):
+        if level not in range(8):
+            raise ValueError("Incorrect filter level.")
+        reg = self.read_reg(_CMD_REG_CONF3)
+        reg &= 0xFFE3
+        reg |= (level & 0x7) << 2
+        self.write_reg(_CMD_REG_CONF3, reg)
+        self._filter = level
+
+    @property
+    def oversampling(self):
+        """The oversampling level."""
+        return self._osr
+
+    @oversampling.setter
+    def oversampling(self, level):
+        if level not in range(4):
+            raise ValueError("Incorrect oversampling level.")
+        reg = self.read_reg(_CMD_REG_CONF3)
+        reg &= 0xFFFC
+        reg |= level & 0x3
+        self.write_reg(_CMD_REG_CONF3, reg)
+        self._osr = level
 
     def display_status(self):
         """
@@ -248,13 +374,28 @@ class MLX90393:
         with self.i2c_device as i2c:
             i2c.readinto(data)
         # Unpack data (status byte, big-endian 16-bit register value)
-        self._status_last, val = struct.unpack(">Bh", data)
+        self._status_last, val = struct.unpack(">BH", data)
         if self._debug:
             print("\t[{}]".format(time.monotonic()))
             print("\t Writing :", [hex(b) for b in payload])
             print("\tResponse :", [hex(b) for b in data])
             print("\t  Status :", hex(data[0]))
         return val
+
+    def write_reg(self, reg, value):
+        """
+        Writes the 16-bit value to the supplied register.
+        """
+        self._transceive(
+            bytes(
+                [
+                    _CMD_WR,
+                    value >> 8,  # high byte
+                    value & 0xFF,  # low byte
+                    reg << 2,  # the register
+                ]
+            )
+        )
 
     def reset(self):
         """
@@ -276,7 +417,9 @@ class MLX90393:
         """
         Reads a single X/Y/Z sample from the magnetometer.
         """
-        delay = 0.01
+        # Set conversion delay based on filter and oversampling
+        delay = _TCONV_LOOKUP[self._filter][self._osr] / 1000  # per datasheet
+        delay *= 1.1  # plus a little
 
         # Set the device to single measurement mode
         self._transceive(bytes([_CMD_SM | _CMD_AXIS_ALL]))
@@ -284,12 +427,30 @@ class MLX90393:
         # Insert a delay since we aren't using INTs for DRDY
         time.sleep(delay)
 
-        # Read the 'XYZ' data as three signed 16-bit integers
+        # Read the 'XYZ' data
         data = self._transceive(bytes([_CMD_RM | _CMD_AXIS_ALL]), 6)
-        self._status_last, m_x, m_y, m_z = struct.unpack(">Bhhh", data)
+
+        # Unpack status and raw int values
+        self._status_last = data[0]
+        m_x = self._unpack_axis_data(self._res_x, data[1:3])
+        m_y = self._unpack_axis_data(self._res_y, data[3:5])
+        m_z = self._unpack_axis_data(self._res_z, data[5:7])
 
         # Return the raw int values if requested
-        return (m_x, m_y, m_z)
+        return m_x, m_y, m_z
+
+    # pylint: disable=no-self-use
+    def _unpack_axis_data(self, resolution, data):
+        # see datasheet
+        if resolution == RESOLUTION_19:
+            (value,) = struct.unpack(">H", data)
+            value -= 0x4000
+        elif resolution == RESOLUTION_18:
+            (value,) = struct.unpack(">H", data)
+            value -= 0x8000
+        else:
+            value = struct.unpack(">h", data)[0]
+        return value
 
     @property
     def magnetic(self):
@@ -300,8 +461,8 @@ class MLX90393:
         x, y, z = self.read_data
 
         # Convert the raw integer values to uT based on gain and resolution
-        x *= _LSB_LOOKUP[self._gain_current][self._res_current][0]
-        y *= _LSB_LOOKUP[self._gain_current][self._res_current][0]
-        z *= _LSB_LOOKUP[self._gain_current][self._res_current][1]
+        x *= _LSB_LOOKUP[self._gain_current][self._res_x][0]
+        y *= _LSB_LOOKUP[self._gain_current][self._res_y][0]
+        z *= _LSB_LOOKUP[self._gain_current][self._res_z][1]
 
         return x, y, z
