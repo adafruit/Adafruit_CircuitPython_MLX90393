@@ -93,31 +93,55 @@ OSR_1 = 0x1
 OSR_2 = 0x2
 OSR_3 = 0x3
 
-_HALLCONF = const(0x0C)  # Hall plate spinning rate adjust.
+# Hall plate spinning rate adjustment
+# Must be 0x0C (default) or 0x00
+_HALLCONF = const(0x0C)
 
 STATUS_OK = 0x3
 
 # The lookup table below allows you to convert raw sensor data to uT
 # using the appropriate (gain/resolution-dependant) lsb-per-uT
 # coefficient below. Note that the z axis has a different coefficient
-# than the x and y axis. Assumes HALLCONF = 0x0C!
+# than the x and y axis.
 _LSB_LOOKUP = (
-    # 5x gain: res0(xy)(z), res1(xy)(z), res2(xy)(z), res3(xy)(z)
-    ((0.751, 1.210), (1.502, 2.420), (3.004, 4.840), (6.009, 9.680)),
-    # 4x gain: res0(xy)(z), res1(xy)(z), res2(xy)(z), res3(xy)(z)
-    ((0.601, 0.968), (1.202, 1.936), (2.403, 3.872), (4.840, 7.744)),
-    # 3x gain: res0(xy)(z), res1(xy)(z), res2(xy)(z), res3(xy)(z)
-    ((0.451, 0.726), (0.901, 1.452), (1.803, 2.904), (3.605, 5.808)),
-    # 2.5x gain: res0(xy)(z), res1(xy)(z), res2(xy)(z), res3(xy)(z)
-    ((0.376, 0.605), (0.751, 1.210), (1.502, 2.420), (3.004, 4.840)),
-    # 2x gain: res0(xy)(z), res1(xy)(z), res2(xy)(z), res3(xy)(z)
-    ((0.300, 0.484), (0.601, 0.968), (1.202, 1.936), (2.403, 3.872)),
-    # 1.667x gain: res0(xy)(z), res1(xy)(z), res2(xy)(z), res3(xy)(z)
-    ((0.250, 0.403), (0.501, 0.807), (1.001, 1.613), (2.003, 3.227)),
-    # 1.333x gain: res0(xy)(z), res1(xy)(z), res2(xy)(z), res3(xy)(z)
-    ((0.200, 0.323), (0.401, 0.645), (0.801, 1.291), (1.602, 2.581)),
-    # 1x gain: res0(xy)(z), res1(xy)(z), res2(xy)(z), res3(xy)(z)
-    ((0.150, 0.242), (0.300, 0.484), (0.601, 0.968), (1.202, 1.936)),
+    # HALLCONF = 0x0C (default)
+    (
+        # 5x gain: res0(xy)(z), res1(xy)(z), res2(xy)(z), res3(xy)(z)
+        ((0.751, 1.210), (1.502, 2.420), (3.004, 4.840), (6.009, 9.680)),
+        # 4x gain: res0(xy)(z), res1(xy)(z), res2(xy)(z), res3(xy)(z)
+        ((0.601, 0.968), (1.202, 1.936), (2.403, 3.872), (4.840, 7.744)),
+        # 3x gain: res0(xy)(z), res1(xy)(z), res2(xy)(z), res3(xy)(z)
+        ((0.451, 0.726), (0.901, 1.452), (1.803, 2.904), (3.605, 5.808)),
+        # 2.5x gain: res0(xy)(z), res1(xy)(z), res2(xy)(z), res3(xy)(z)
+        ((0.376, 0.605), (0.751, 1.210), (1.502, 2.420), (3.004, 4.840)),
+        # 2x gain: res0(xy)(z), res1(xy)(z), res2(xy)(z), res3(xy)(z)
+        ((0.300, 0.484), (0.601, 0.968), (1.202, 1.936), (2.403, 3.872)),
+        # 1.667x gain: res0(xy)(z), res1(xy)(z), res2(xy)(z), res3(xy)(z)
+        ((0.250, 0.403), (0.501, 0.807), (1.001, 1.613), (2.003, 3.227)),
+        # 1.333x gain: res0(xy)(z), res1(xy)(z), res2(xy)(z), res3(xy)(z)
+        ((0.200, 0.323), (0.401, 0.645), (0.801, 1.291), (1.602, 2.581)),
+        # 1x gain: res0(xy)(z), res1(xy)(z), res2(xy)(z), res3(xy)(z)
+        ((0.150, 0.242), (0.300, 0.484), (0.601, 0.968), (1.202, 1.936)),
+    ),
+    # HALLCONF = 0x00
+    (
+        # GAIN_SEL = 0, 5x gain
+        ((0.787, 1.267), (1.573, 2.534), (3.146, 5.068), (6.292, 10.137)),
+        # GAIN_SEL = 1, 4x gain
+        ((0.629, 1.014), (1.258, 2.027), (2.517, 4.055), (5.034, 8.109)),
+        # GAIN_SEL = 2, 3x gain
+        ((0.472, 0.760), (0.944, 1.521), (1.888, 3.041), (3.775, 6.082)),
+        # GAIN_SEL = 3, 2.5x gain
+        ((0.393, 0.634), (0.787, 1.267), (1.573, 2.534), (3.146, 5.068)),
+        # GAIN_SEL = 4, 2x gain
+        ((0.315, 0.507), (0.629, 1.014), (1.258, 2.027), (2.517, 4.055)),
+        # GAIN_SEL = 5, 1.667x gain
+        ((0.262, 0.422), (0.524, 0.845), (1.049, 1.689), (2.097, 3.379)),
+        # GAIN_SEL = 6, 1.333x gain
+        ((0.210, 0.338), (0.419, 0.676), (0.839, 1.352), (1.678, 2.703)),
+        # GAIN_SEL = 7, 1x gain
+        ((0.157, 0.253), (0.315, 0.507), (0.629, 1.014), (1.258, 2.027)),
+    ),
 )
 
 # Lookup table for conversion times for different filter and
@@ -442,9 +466,17 @@ class MLX90393:  # pylint: disable=too-many-instance-attributes
         """
         x, y, z = self.read_data
 
+        # Check for valid HALLCONF value and set _LSB_LOOKUP index
+        if _HALLCONF == 0x0C:
+            hallconf_index = 0
+        elif _HALLCONF == 0x00:
+            hallconf_index = 1
+        else:
+            raise ValueError("Incorrect HALLCONF value, must be '0x0C' or '0x00'.")
+
         # Convert the raw integer values to uT based on gain and resolution
-        x *= _LSB_LOOKUP[self._gain_current][self._res_x][0]
-        y *= _LSB_LOOKUP[self._gain_current][self._res_y][0]
-        z *= _LSB_LOOKUP[self._gain_current][self._res_z][1]
+        x *= _LSB_LOOKUP[hallconf_index][self._gain_current][self._res_x][0]
+        y *= _LSB_LOOKUP[hallconf_index][self._gain_current][self._res_y][0]
+        z *= _LSB_LOOKUP[hallconf_index][self._gain_current][self._res_z][1]
 
         return x, y, z
