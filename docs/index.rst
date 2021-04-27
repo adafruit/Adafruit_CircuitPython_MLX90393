@@ -23,8 +23,12 @@ Table of Contents
 .. toctree::
     :caption: Tutorials
 
+    Adafruit Wide-Range Triple-axis Magnetometer - MLX90393 Learning Guide <https://learn.adafruit.com/mlx90393-wide-range-3-axis-magnetometer>
+
 .. toctree::
     :caption: Related Products
+
+    Adafruit Wide-Range Triple-axis Magnetometer - MLX90393 <https://www.adafruit.com/product/4022>
 
 .. toctree::
     :caption: Other Links

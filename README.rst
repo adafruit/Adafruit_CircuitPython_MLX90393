@@ -57,13 +57,11 @@ Usage Example
 .. code-block:: python3
 
     import time
-    import busio
     import board
-
     import adafruit_mlx90393
 
-    I2C_BUS = busio.I2C(board.SCL, board.SDA)
-    SENSOR = adafruit_mlx90393.MLX90393(I2C_BUS, gain=adafruit_mlx90393.GAIN_1X)
+    i2c = board.I2C()  # uses board.SCL and board.SDA
+    SENSOR = adafruit_mlx90393.MLX90393(i2c, gain=adafruit_mlx90393.GAIN_1X)
 
     while True:
         MX, MY, MZ = SENSOR.magnetic
