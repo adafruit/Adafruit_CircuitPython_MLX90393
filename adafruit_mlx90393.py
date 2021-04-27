@@ -21,10 +21,11 @@ Implementation Notes
 **Software and Dependencies:**
 
 * Adafruit CircuitPython firmware for the supported boards:
-  https://github.com/adafruit/circuitpython/releases
-
+  https://circuitpython.org/downloads
 * Adafruit's Bus Device library:
   https://github.com/adafruit/Adafruit_CircuitPython_BusDevice
+* Adafruit's Register library:
+  https://github.com/adafruit/Adafruit_CircuitPython_Register
 
 """
 
@@ -162,11 +163,36 @@ _TCONV_LOOKUP = (
 class MLX90393:  # pylint: disable=too-many-instance-attributes
     """
     Driver for the MLX90393 magnetometer.
-    :param i2c_bus: The `busio.I2C` object to use. This is the only
-    required parameter.
-    :param int address: (optional) The I2C address of the device.
-    :param int gain: (optional) The gain level to apply.
-    :param bool debug: (optional) Enable debug output.
+
+    :param i2c_bus: The I2C bus the device is connected to
+    :param int address: The I2C device address. Defaults to :const:`0x0C`
+    :param int gain: The gain level to apply. Defaults to :const:`GAIN_1X`
+    :param bool debug: Enable debug output. Defaults to `False`
+
+
+    **Quickstart: Importing and using the device**
+
+        Here is an example of using the :class:`MLX90393` class.
+        First you will need to import the libraries to use the sensor
+
+        .. code-block:: python
+
+            import board
+            import adafruit_mlx90393
+
+        Once this is done you can define your `board.I2C` object and define your sensor object
+
+        .. code-block:: python
+
+            i2c = board.I2C()  # uses board.SCL and board.SDA
+            SENSOR = adafruit_mlx90393.MLX90393(i2c)
+
+        Now you have access to the :attr:`magnetic` attribute
+
+        .. code-block:: python
+
+            MX, MY, MZ = SENSOR.magnetic
+
     """
 
     def __init__(
@@ -208,8 +234,10 @@ class MLX90393:  # pylint: disable=too-many-instance-attributes
         """
         Writes the specified 'payload' to the sensor
         Returns the results of the write attempt.
-        :param bytearray payload: The byte array to write to the sensor
-        :param rxlen: (optional) The numbers of bytes to read back (default=0)
+
+        :param bytes payload: The byte array to write to the sensor
+        :param int rxlen: numbers of bytes to read back. Defaults to :const:`0`
+
         """
         # Read the response (+1 to account for the mandatory status byte!)
         data = bytearray(rxlen + 1)
@@ -351,7 +379,7 @@ class MLX90393:  # pylint: disable=too-many-instance-attributes
 
     def display_status(self):
         """
-        Prints out the content of the last status byte in a human-readble
+        Prints out the content of the last status byte in a human-readable
         format.
         """
         avail = 0
