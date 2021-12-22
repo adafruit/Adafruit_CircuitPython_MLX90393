@@ -28,13 +28,8 @@ Implementation Notes
   https://github.com/adafruit/Adafruit_CircuitPython_Register
 
 """
-
+import struct
 import time
-
-try:
-    import struct
-except ImportError:
-    import ustruct as struct
 
 from adafruit_bus_device.i2c_device import I2CDevice
 from micropython import const
