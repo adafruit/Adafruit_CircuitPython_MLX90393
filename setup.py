@@ -37,7 +37,7 @@ setup(
     install_requires=[
         "Adafruit-Blinka>=7.0.0",
         "adafruit-circuitpython-busdevice",
-        "adafruit-circuitpython-typing"
+        "adafruit-circuitpython-typing",
     ],
     # Choose your license
     license="MIT",
