@@ -169,6 +169,9 @@ class MLX90393:  # pylint: disable=too-many-instance-attributes
     :param i2c_bus: The I2C bus the device is connected to
     :param int address: The I2C device address. Defaults to :const:`0x0C`
     :param int gain: The gain level to apply. Defaults to :const:`GAIN_1X`
+    :param int resolution: The resolution level to use.  Defaults to :const:`RESOLUTION_16`
+    :param int filt: The filter to use. Defaults to :const:`FILTER_7`
+    :param int oversampling: The oversampleing setting to use. Defaults to :const:`OSR_3`
     :param bool debug: Enable debug output. Defaults to `False`
 
 
@@ -399,6 +402,8 @@ class MLX90393:  # pylint: disable=too-many-instance-attributes
     def read_reg(self, reg: int) -> int:
         """
         Gets the current value of the specified register.
+
+        :param int reg: The register to read
         """
         # Write 'value' to the specified register
         payload = bytes([_CMD_RR, reg << 2])
@@ -421,6 +426,9 @@ class MLX90393:  # pylint: disable=too-many-instance-attributes
     def write_reg(self, reg: int, value: int) -> None:
         """
         Writes the 16-bit value to the supplied register.
+
+        :param int reg: The register to write to
+        :param int value: The value to write to the register
         """
         self._transceive(
             bytes(
