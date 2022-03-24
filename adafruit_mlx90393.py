@@ -34,6 +34,13 @@ import time
 from adafruit_bus_device.i2c_device import I2CDevice
 from micropython import const
 
+try:
+    from typing import Tuple
+    from circuitpython_typing import ReadableBuffer
+    from busio import I2C
+except ImportError:
+    pass
+
 __version__ = "0.0.0-auto.0"
 __repo__ = "https://github.com/adafruit/Adafruit_CircuitPython_MLX90393.git"
 
@@ -192,14 +199,14 @@ class MLX90393:  # pylint: disable=too-many-instance-attributes
 
     def __init__(
         self,
-        i2c_bus,
-        address=0x0C,
-        gain=GAIN_1X,
-        resolution=RESOLUTION_16,
-        filt=FILTER_7,
-        oversampling=OSR_3,
-        debug=False,
-    ):  # pylint: disable=too-many-arguments
+        i2c_bus: I2C,
+        address: int = 0x0C,
+        gain: int = GAIN_1X,
+        resolution: int = RESOLUTION_16,
+        filt: int = FILTER_7,
+        oversampling: int = OSR_3,
+        debug: bool = False,
+    ) -> None:  # pylint: disable=too-many-arguments
         self.i2c_device = I2CDevice(i2c_bus, address)
         self._debug = debug
         self._status_last = 0
@@ -225,12 +232,12 @@ class MLX90393:  # pylint: disable=too-many-instance-attributes
         # Set gain to the supplied level
         self.gain = self._gain_current
 
-    def _transceive(self, payload, rxlen=0):
+    def _transceive(self, payload: ReadableBuffer, rxlen: int = 0) -> bytearray:
         """
         Writes the specified 'payload' to the sensor
         Returns the results of the write attempt.
 
-        :param bytes payload: The byte array to write to the sensor
+        :param ReadableBuffer payload: The byte array to write to the sensor
         :param int rxlen: numbers of bytes to read back. Defaults to :const:`0`
 
         """
@@ -266,21 +273,21 @@ class MLX90393:  # pylint: disable=too-many-instance-attributes
         return data
 
     @property
-    def last_status(self):
+    def last_status(self) -> int:
         """
         The last status byte received from the sensor.
         """
         return self._status_last
 
     @property
-    def gain(self):
+    def gain(self) -> int:
         """
         The gain setting for the device.
         """
         return self._gain_current
 
     @gain.setter
-    def gain(self, value):
+    def gain(self, value: int) -> None:
         if value > GAIN_1X or value < GAIN_5X:
             raise ValueError("Invalid GAIN setting")
         if self._debug:
@@ -298,36 +305,36 @@ class MLX90393:  # pylint: disable=too-many-instance-attributes
         )
 
     @property
-    def resolution_x(self):
+    def resolution_x(self) -> int:
         """The X axis resolution."""
         return self._res_x
 
     @resolution_x.setter
-    def resolution_x(self, resolution):
+    def resolution_x(self, resolution: int) -> None:
         self._set_resolution(0, resolution)
         self._res_x = resolution
 
     @property
-    def resolution_y(self):
+    def resolution_y(self) -> int:
         """The Y axis resolution."""
         return self._res_y
 
     @resolution_y.setter
-    def resolution_y(self, resolution):
+    def resolution_y(self, resolution: int) -> None:
         self._set_resolution(1, resolution)
         self._res_y = resolution
 
     @property
-    def resolution_z(self):
+    def resolution_z(self) -> int:
         """The Z axis resolution."""
         return self._res_z
 
     @resolution_z.setter
-    def resolution_z(self, resolution):
+    def resolution_z(self, resolution: int) -> None:
         self._set_resolution(2, resolution)
         self._res_z = resolution
 
-    def _set_resolution(self, axis, resolution):
+    def _set_resolution(self, axis: int, resolution: int) -> None:
         if resolution not in (
             RESOLUTION_16,
             RESOLUTION_17,
@@ -343,12 +350,12 @@ class MLX90393:  # pylint: disable=too-many-instance-attributes
         self.write_reg(_CMD_REG_CONF3, reg)
 
     @property
-    def filter(self):
+    def filter(self) -> int:
         """The filter level."""
         return self._filter
 
     @filter.setter
-    def filter(self, level):
+    def filter(self, level: int) -> None:
         if level not in range(8):
             raise ValueError("Incorrect filter level.")
         reg = self.read_reg(_CMD_REG_CONF3)
@@ -358,12 +365,12 @@ class MLX90393:  # pylint: disable=too-many-instance-attributes
         self._filter = level
 
     @property
-    def oversampling(self):
+    def oversampling(self) -> int:
         """The oversampling level."""
         return self._osr
 
     @oversampling.setter
-    def oversampling(self, level):
+    def oversampling(self, level: int) -> None:
         if level not in range(4):
             raise ValueError("Incorrect oversampling level.")
         reg = self.read_reg(_CMD_REG_CONF3)
@@ -372,7 +379,7 @@ class MLX90393:  # pylint: disable=too-many-instance-attributes
         self.write_reg(_CMD_REG_CONF3, reg)
         self._osr = level
 
-    def display_status(self):
+    def display_status(self) -> None:
         """
         Prints out the content of the last status byte in a human-readable
         format.
@@ -389,7 +396,7 @@ class MLX90393:  # pylint: disable=too-many-instance-attributes
         print("Reset status             :", (self._status_last & (1 << 2)) > 0)
         print("Response bytes available :", avail)
 
-    def read_reg(self, reg):
+    def read_reg(self, reg: int) -> int:
         """
         Gets the current value of the specified register.
         """
@@ -411,7 +418,7 @@ class MLX90393:  # pylint: disable=too-many-instance-attributes
             print("\t  Status :", hex(data[0]))
         return val
 
-    def write_reg(self, reg, value):
+    def write_reg(self, reg: int, value: int) -> None:
         """
         Writes the 16-bit value to the supplied register.
         """
@@ -426,7 +433,7 @@ class MLX90393:  # pylint: disable=too-many-instance-attributes
             )
         )
 
-    def reset(self):
+    def reset(self) -> None:
         """
         Performs a software reset of the sensor.
         """
@@ -442,7 +449,7 @@ class MLX90393:  # pylint: disable=too-many-instance-attributes
         return self._status_last
 
     @property
-    def read_data(self):
+    def read_data(self) -> Tuple[int, int, int]:
         """
         Reads a single X/Y/Z sample from the magnetometer.
         """
@@ -469,7 +476,7 @@ class MLX90393:  # pylint: disable=too-many-instance-attributes
         return m_x, m_y, m_z
 
     # pylint: disable=no-self-use
-    def _unpack_axis_data(self, resolution, data):
+    def _unpack_axis_data(self, resolution: int, data: ReadableBuffer) -> int:
         # see datasheet
         if resolution == RESOLUTION_19:
             (value,) = struct.unpack(">H", data)
@@ -482,7 +489,7 @@ class MLX90393:  # pylint: disable=too-many-instance-attributes
         return value
 
     @property
-    def magnetic(self):
+    def magnetic(self) -> Tuple[float, float, float]:
         """
         The processed magnetometer sensor values.
         A 3-tuple of X, Y, Z axis values in microteslas that are signed floats.
