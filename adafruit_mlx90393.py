@@ -200,7 +200,7 @@ class MLX90393:  # pylint: disable=too-many-instance-attributes
 
     """
 
-    def __init__(
+    def __init__(  # pylint: disable=too-many-arguments
         self,
         i2c_bus: I2C,
         address: int = 0x0C,
@@ -209,7 +209,7 @@ class MLX90393:  # pylint: disable=too-many-instance-attributes
         filt: int = FILTER_7,
         oversampling: int = OSR_3,
         debug: bool = False,
-    ) -> None:  # pylint: disable=too-many-arguments
+    ) -> None:
         self.i2c_device = I2CDevice(i2c_bus, address)
         self._debug = debug
         self._status_last = 0
