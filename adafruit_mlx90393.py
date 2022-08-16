@@ -41,7 +41,7 @@ try:
 except ImportError:
     pass
 
-__version__ = "0.0.0-auto.0"
+__version__ = "0.0.0+auto.0"
 __repo__ = "https://github.com/adafruit/Adafruit_CircuitPython_MLX90393.git"
 
 _CMD_SB = const(0b00010000)  # Start burst mode
