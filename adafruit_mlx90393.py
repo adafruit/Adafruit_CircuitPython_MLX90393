@@ -520,14 +520,17 @@ class MLX90393:  # pylint: disable=too-many-instance-attributes
 
         return x, y, z
 
-    def read_temp(self):
+    @property
+    def temperature(self) -> float:
         """
         Reads a single temperature sample from the magnetometer.
+        Temperature value in Celsius
         """
-        # Set conversion delay based on filter and oversampling
+        # Read the temperature reference from register 0x24
         treference = self.read_reg(0x24)
 
-        # from maximum time of temperature conversion on the datasheet section 12. 1603 us
+        # Value taken from maximum time of temperature conversion on the datasheet section 12.
+        # maximum time for temperature conversion = 1603 us
         delay = 0.1
 
         # Set the device to single measurement mode
@@ -544,6 +547,6 @@ class MLX90393:  # pylint: disable=too-many-instance-attributes
         # from https://www.melexis.com/-/media/files/documents/
         # application-notes/mlx90393-temperature-compensation-application-note-melexis.pdf
         tvalue = struct.unpack(">H", data[1:3])[0]
-        temperature = 35 + ((tvalue - treference) / 45.2)  # See previous link
+        # See previous link for conversion formula
 
-        return temperature
+        return 35 + ((tvalue - treference) / 45.2)
