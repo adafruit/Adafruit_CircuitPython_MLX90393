@@ -57,6 +57,7 @@ _CMD_RT = const(0b11110000)  # Reset
 _CMD_NOP = const(0x00)  # NOP
 
 _CMD_AXIS_ALL = const(0xE)  # X+Y+Z axis bits for commands
+_CMD_TEMP = const(0x01)  # Temperature bit for commands
 
 _CMD_REG_CONF1 = const(0x00)  # Gain
 _CMD_REG_CONF2 = const(0x01)  # Burst, comm mode
@@ -518,3 +519,34 @@ class MLX90393:  # pylint: disable=too-many-instance-attributes
         z *= _LSB_LOOKUP[hallconf_index][self._gain_current][self._res_z][1]
 
         return x, y, z
+
+    @property
+    def temperature(self) -> float:
+        """
+        Reads a single temperature sample from the magnetometer.
+        Temperature value in Celsius
+        """
+        # Read the temperature reference from register 0x24
+        treference = self.read_reg(0x24)
+
+        # Value taken from maximum time of temperature conversion on the datasheet section 12.
+        # maximum time for temperature conversion = 1603 us
+        delay = 0.1
+
+        # Set the device to single measurement mode
+        self._transceive(bytes([_CMD_SM | _CMD_TEMP]))
+
+        time.sleep(delay)
+
+        # Read the 'temp' data
+        data = self._transceive(bytes([_CMD_RM | _CMD_TEMP]), 2)
+
+        # Unpack status and raw int values
+        self._status_last = data[0]
+
+        # from https://www.melexis.com/-/media/files/documents/
+        # application-notes/mlx90393-temperature-compensation-application-note-melexis.pdf
+        tvalue = struct.unpack(">H", data[1:3])[0]
+        # See previous link for conversion formula
+
+        return 35 + ((tvalue - treference) / 45.2)
