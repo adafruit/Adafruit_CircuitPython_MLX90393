@@ -406,15 +406,12 @@ class MLX90393:  # pylint: disable=too-many-instance-attributes
 
         :param int reg: The register to read
         """
-        # Write 'value' to the specified register
+        # Read register
         payload = bytes([_CMD_RR, reg << 2])
-        with self.i2c_device as i2c:
-            i2c.write(payload)
-
-        # Read the response (+1 to account for the mandatory status byte!)
         data = bytearray(3)
         with self.i2c_device as i2c:
-            i2c.readinto(data)
+            i2c.write_then_readinto(payload, data)
+
         # Unpack data (status byte, big-endian 16-bit register value)
         self._status_last, val = struct.unpack(">BH", data)
         if self._debug:
