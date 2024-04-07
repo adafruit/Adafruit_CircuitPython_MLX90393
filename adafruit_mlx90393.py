@@ -28,6 +28,7 @@ Implementation Notes
   https://github.com/adafruit/Adafruit_CircuitPython_Register
 
 """
+
 import struct
 import time
 
@@ -36,8 +37,9 @@ from micropython import const
 
 try:
     from typing import Tuple
-    from circuitpython_typing import ReadableBuffer
+
     from busio import I2C
+    from circuitpython_typing import ReadableBuffer
 except ImportError:
     pass
 
@@ -60,7 +62,7 @@ _CMD_AXIS_ALL = const(0xE)  # X+Y+Z axis bits for commands
 _CMD_TEMP = const(0x01)  # Temperature bit for commands
 
 _CMD_REG_CONF1 = const(0x00)  # Gain
-_CMD_REG_CONF2 = const(0x01)  # Burst, comm mode
+_CMD_REG_CONF2 = const(0x01)  # Burst, comm mode, temperature compensation
 _CMD_REG_CONF3 = const(0x02)  # Oversampling, Filter, Resolution
 _CMD_REG_CONF4 = const(0x03)  # Sensitivity drift
 
@@ -209,6 +211,7 @@ class MLX90393:  # pylint: disable=too-many-instance-attributes
         resolution: int = RESOLUTION_16,
         filt: int = FILTER_7,
         oversampling: int = OSR_3,
+        temperature_compensation: bool = False,
         debug: bool = False,
     ) -> None:
         self.i2c_device = I2CDevice(i2c_bus, address)
@@ -218,6 +221,7 @@ class MLX90393:  # pylint: disable=too-many-instance-attributes
         self._filter = filt
         self._osr = oversampling
         self._gain_current = gain
+        self._temperature_compensation = temperature_compensation
 
         # Put the device in a known state to start
         self.reset()
@@ -235,6 +239,7 @@ class MLX90393:  # pylint: disable=too-many-instance-attributes
 
         # Set gain to the supplied level
         self.gain = self._gain_current
+        self.temperature_compensation = self._temperature_compensation
 
     def _transceive(self, payload: ReadableBuffer, rxlen: int = 0) -> bytearray:
         """
@@ -383,6 +388,20 @@ class MLX90393:  # pylint: disable=too-many-instance-attributes
         self.write_reg(_CMD_REG_CONF3, reg)
         self._osr = level
 
+    @property
+    def temperature_compensation(self) -> bool:
+        """The temperature compensation setting"""
+        return self._temperature_compensation
+
+    @temperature_compensation.setter
+    def temperature_compensation(self, temperature_compensation: bool) -> None:
+        reg = self.read_reg(_CMD_REG_CONF2)
+        t_cmp_bit = 10
+        reg &= ~(1 << t_cmp_bit)
+        reg |= temperature_compensation << t_cmp_bit
+        self.write_reg(_CMD_REG_CONF2, reg)
+        self._temperature_compensation = temperature_compensation
+
     def display_status(self) -> None:
         """
         Prints out the content of the last status byte in a human-readable
@@ -459,6 +478,17 @@ class MLX90393:  # pylint: disable=too-many-instance-attributes
         """
         Reads a single X/Y/Z sample from the magnetometer.
         """
+
+        resolutions = {self.resolution_x, self.resolution_y, self.resolution_z}
+        valid_tcomp_resolutions = {RESOLUTION_16, RESOLUTION_17}
+        if self._temperature_compensation and not resolutions.issubset(
+            valid_tcomp_resolutions
+        ):
+            resolutions_output = f"Current Resolutions:\n\tresolution_x: {self.resolution_x}\n\tresolution_y: {self.resolution_y}\n\tresolution_z: {self.resolution_z}"
+            raise ValueError(
+                f"All resolutions must be RESOLUTION_16 or RESOLUTION_17 if temperature compensation is enabled.\n {resolutions_output}"
+            )
+
         # Set conversion delay based on filter and oversampling
         delay = _TCONV_LOOKUP[self._filter][self._osr] / 1000  # per datasheet
         delay *= 1.1  # plus a little
@@ -488,6 +518,9 @@ class MLX90393:  # pylint: disable=too-many-instance-attributes
             (value,) = struct.unpack(">H", data)
             value -= 0x4000
         elif resolution == RESOLUTION_18:
+            (value,) = struct.unpack(">H", data)
+            value -= 0x8000
+        elif self.temperature_compensation:
             (value,) = struct.unpack(">H", data)
             value -= 0x8000
         else:
