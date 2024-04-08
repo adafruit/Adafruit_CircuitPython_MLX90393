@@ -445,11 +445,10 @@ class MLX90393:  # pylint: disable=too-many-instance-attributes
         """
         Performs a software reset of the sensor.
         """
+        self._transceive(bytes([_CMD_EX]))
         if self._debug:
             print("Resetting sensor")
         time.sleep(2)
-        self._transceive(bytes([_CMD_EX]))
-        time.sleep(0.001)
         self._transceive(bytes([_CMD_RT]))
         # burn a read post reset
         try:
