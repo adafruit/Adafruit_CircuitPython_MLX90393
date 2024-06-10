@@ -28,6 +28,7 @@ Implementation Notes
   https://github.com/adafruit/Adafruit_CircuitPython_Register
 
 """
+
 import struct
 import time
 
@@ -36,8 +37,9 @@ from micropython import const
 
 try:
     from typing import Tuple
-    from circuitpython_typing import ReadableBuffer
+
     from busio import I2C
+    from circuitpython_typing import ReadableBuffer
 except ImportError:
     pass
 
@@ -443,6 +445,7 @@ class MLX90393:  # pylint: disable=too-many-instance-attributes
         """
         Performs a software reset of the sensor.
         """
+        self._transceive(bytes([_CMD_EX]))
         if self._debug:
             print("Resetting sensor")
         time.sleep(2)
