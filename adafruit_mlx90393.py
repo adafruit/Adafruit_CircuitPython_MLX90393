@@ -484,14 +484,13 @@ class MLX90393:  # pylint: disable=too-many-instance-attributes
         if self._temperature_compensation and not resolutions.issubset(
             valid_tcomp_resolutions
         ):
-            resolutions_output = (
-                f"Current Resolutions:\n\t"
-                f"resolution_x: {self.resolution_x}\n\t"
-                f"resolution_y: {self.resolution_y}\n\t"
-                f"resolution_z: {self.resolution_z}"
-            )
+            resolutions_output = f"""Current Resolutions:
+\tresolution_x: {self.resolution_x}
+\tresolution_y: {self.resolution_y}
+\tresolution_z: {self.resolution_z}"""
+
             raise ValueError(
-                f"All resolutions must be RESOLUTION_16 or RESOLUTION_17"
+                "All resolutions must be RESOLUTION_16 or RESOLUTION_17"
                 f" if temperature compensation is enabled.\n {resolutions_output}"
             )
 
