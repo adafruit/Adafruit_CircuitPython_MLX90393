@@ -65,6 +65,9 @@ _CMD_REG_CONF1 = const(0x00)  # Gain
 _CMD_REG_CONF2 = const(0x01)  # Burst, comm mode, temperature compensation
 _CMD_REG_CONF3 = const(0x02)  # Oversampling, Filter, Resolution
 _CMD_REG_CONF4 = const(0x03)  # Sensitivity drift
+_CMD_REG_CONF5 = const(0x04)  # X-axis Offset Correction
+_CMD_REG_CONF6 = const(0x05)  # Y-axis Offset Correction
+_CMD_REG_CONF7 = const(0x06)  # Z-axis Offset Correction
 
 # Gain settings
 GAIN_5X = 0x0
@@ -212,6 +215,7 @@ class MLX90393:  # pylint: disable=too-many-instance-attributes
         filt: int = FILTER_7,
         oversampling: int = OSR_3,
         temperature_compensation: bool = False,
+        offset: int = 0,
         debug: bool = False,
     ) -> None:
         self.i2c_device = I2CDevice(i2c_bus, address)
@@ -222,6 +226,7 @@ class MLX90393:  # pylint: disable=too-many-instance-attributes
         self._osr = oversampling
         self._gain_current = gain
         self._temperature_compensation = temperature_compensation
+        self._off_x = self._off_y = self._off_z = offset
 
         # Put the device in a known state to start
         self.reset()
@@ -240,6 +245,11 @@ class MLX90393:  # pylint: disable=too-many-instance-attributes
         # Set gain to the supplied level
         self.gain = self._gain_current
         self.temperature_compensation = self._temperature_compensation
+
+        # Set offsets to supplied level
+        self.offset_x = self._off_x
+        self.offset_y = self._off_y
+        self.offset_z = self._off_z
 
     def _transceive(self, payload: ReadableBuffer, rxlen: int = 0) -> bytearray:
         """
@@ -401,6 +411,48 @@ class MLX90393:  # pylint: disable=too-many-instance-attributes
         reg |= temperature_compensation << t_cmp_bit
         self.write_reg(_CMD_REG_CONF2, reg)
         self._temperature_compensation = temperature_compensation
+
+    @property
+    def offset_x(self) -> int:
+        """The X axis offset."""
+        return self._off_x
+
+    @offset_x.setter
+    def offset_x(self, offset: int) -> None:
+        self._set_offset(0, offset)
+        self._off_x = offset
+
+    @property
+    def offset_y(self) -> int:
+        """The Y axis offset."""
+        return self._off_y
+
+    @offset_y.setter
+    def offset_y(self, offset: int) -> None:
+        self._set_offset(1, offset)
+        self._off_y = offset
+
+    @property
+    def offset_z(self) -> int:
+        """The Z axis offset."""
+        return self._off_z
+
+    @offset_z.setter
+    def offset_z(self, offset: int) -> None:
+        self._set_offset(2, offset)
+        self._off_z = offset
+
+    def _set_offset(self, axis: int, offset: int) -> None:
+        if offset < 0x0000 or offset > 0xFFFF :
+            raise ValueError("Incorrect offset setting.")
+        if axis == 0:
+            self.write_reg(_CMD_REG_CONF5, offset)
+        elif axis == 1:
+            self.write_reg(_CMD_REG_CONF6, offset)
+        elif axis == 2:
+            self.write_reg(_CMD_REG_CONF7, offset)
+        else:
+            raise ValueError("Incorrect axis setting.")
 
     def display_status(self) -> None:
         """
