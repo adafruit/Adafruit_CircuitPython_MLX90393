@@ -443,7 +443,7 @@ class MLX90393:  # pylint: disable=too-many-instance-attributes
         self._off_z = offset
 
     def _set_offset(self, axis: int, offset: int) -> None:
-        if offset < 0x0000 or offset > 0xFFFF :
+        if offset < 0x0000 or offset > 0xFFFF:
             raise ValueError("Incorrect offset setting.")
         if axis == 0:
             self.write_reg(_CMD_REG_CONF5, offset)
