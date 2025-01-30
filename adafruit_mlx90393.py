@@ -226,6 +226,8 @@ class MLX90393:  # pylint: disable=too-many-instance-attributes
         self._osr = oversampling
         self._gain_current = gain
         self._temperature_compensation = temperature_compensation
+        # Typical value according the application note
+        self._tref = 0xB668
         self._off_x = self._off_y = self._off_z = offset
 
         # Put the device in a known state to start
@@ -519,6 +521,12 @@ class MLX90393:  # pylint: disable=too-many-instance-attributes
             print("Resetting sensor")
         time.sleep(0.002)
         self._transceive(bytes([_CMD_RT]))
+
+        # Read the temperature reference from register 0x24
+        self._tref = self.read_reg(0x24)
+        if self._debug:
+            print("Tref = {}".format(hex(self._tref)))
+
         # burn a read post reset
         try:
             self.magnetic
@@ -614,9 +622,6 @@ class MLX90393:  # pylint: disable=too-many-instance-attributes
         Reads a single temperature sample from the magnetometer.
         Temperature value in Celsius
         """
-        # Read the temperature reference from register 0x24
-        treference = self.read_reg(0x24)
-
         # Value taken from maximum time of temperature conversion on the datasheet section 12.
         # maximum time for temperature conversion = 1603 us
         delay = 0.1
@@ -637,4 +642,4 @@ class MLX90393:  # pylint: disable=too-many-instance-attributes
         tvalue = struct.unpack(">H", data[1:3])[0]
         # See previous link for conversion formula
 
-        return 35 + ((tvalue - treference) / 45.2)
+        return 35 + ((tvalue - self._tref) / 45.2)
