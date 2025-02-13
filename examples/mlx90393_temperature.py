@@ -7,7 +7,12 @@ import adafruit_mlx90393
 
 i2c = board.I2C()  # uses board.SCL and board.SDA
 # i2c = board.STEMMA_I2C()  # For using the built-in STEMMA QT connector on a microcontroller
-SENSOR = adafruit_mlx90393.MLX90393(i2c, gain=adafruit_mlx90393.GAIN_1X)
+try:
+    SENSOR = adafruit_mlx90393.MLX90393(i2c, gain=adafruit_mlx90393.GAIN_1X)
+except ValueError:
+    SENSOR = adafruit_mlx90393.MLX90393(
+        i2c, gain=adafruit_mlx90393.GAIN_1X, address=0x18
+    )
 
 
 while True:
