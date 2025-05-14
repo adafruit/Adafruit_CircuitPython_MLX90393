@@ -168,7 +168,7 @@ _TCONV_LOOKUP = (
 )
 
 
-class MLX90393:  # pylint: disable=too-many-instance-attributes
+class MLX90393:
     """
     Driver for the MLX90393 magnetometer.
 
@@ -206,7 +206,7 @@ class MLX90393:  # pylint: disable=too-many-instance-attributes
 
     """
 
-    def __init__(  # pylint: disable=too-many-arguments
+    def __init__(
         self,
         i2c_bus: I2C,
         address: int = 0x0C,
@@ -287,7 +287,7 @@ class MLX90393:  # pylint: disable=too-many-instance-attributes
         self._status_last = data[0]
         # Unpack data (status byte, big-endian 16-bit register value)
         if self._debug:
-            print("\t[{}]".format(time.monotonic()))
+            print(f"\t[{time.monotonic()}]")
             print("\t Writing :", [hex(b) for b in payload])
             print("\tResponse :", [hex(b) for b in data])
             print("\t  Status :", hex(data[0]))
@@ -312,7 +312,7 @@ class MLX90393:  # pylint: disable=too-many-instance-attributes
         if value > GAIN_1X or value < GAIN_5X:
             raise ValueError("Invalid GAIN setting")
         if self._debug:
-            print("\tSetting gain: {}".format(value))
+            print(f"\tSetting gain: {value}")
         self._gain_current = value
         self._transceive(
             bytes(
@@ -356,12 +356,12 @@ class MLX90393:  # pylint: disable=too-many-instance-attributes
         self._res_z = resolution
 
     def _set_resolution(self, axis: int, resolution: int) -> None:
-        if resolution not in (
+        if resolution not in {
             RESOLUTION_16,
             RESOLUTION_17,
             RESOLUTION_18,
             RESOLUTION_19,
-        ):
+        }:
             raise ValueError("Incorrect resolution setting.")
         shift = (5, 7, 9)[axis]
         mask = (0xFF9F, 0xFE7F, 0xF9FF)[axis]
@@ -464,7 +464,7 @@ class MLX90393:  # pylint: disable=too-many-instance-attributes
         avail = 0
         if self._status_last & 0b11 > 0:
             avail = 2 * (self._status_last & 0b11) + 2
-        print("STATUS register = 0x{0:02X}".format(self._status_last))
+        print(f"STATUS register = 0x{self._status_last:02X}")
         print("BURST Mode               :", (self._status_last & (1 << 7)) > 0)
         print("WOC Mode                 :", (self._status_last & (1 << 6)) > 0)
         print("SM Mode                  :", (self._status_last & (1 << 5)) > 0)
@@ -488,7 +488,7 @@ class MLX90393:  # pylint: disable=too-many-instance-attributes
         # Unpack data (status byte, big-endian 16-bit register value)
         self._status_last, val = struct.unpack(">BH", data)
         if self._debug:
-            print("\t[{}]".format(time.monotonic()))
+            print(f"\t[{time.monotonic()}]")
             print("\t Writing :", [hex(b) for b in payload])
             print("\tResponse :", [hex(b) for b in data])
             print("\t  Status :", hex(data[0]))
@@ -525,7 +525,7 @@ class MLX90393:  # pylint: disable=too-many-instance-attributes
         # Read the temperature reference from register 0x24
         self._tref = self.read_reg(0x24)
         if self._debug:
-            print("Tref = {}".format(hex(self._tref)))
+            print(f"Tref = {hex(self._tref)}")
 
         # burn a read post reset
         try:
@@ -542,9 +542,7 @@ class MLX90393:  # pylint: disable=too-many-instance-attributes
 
         resolutions = {self.resolution_x, self.resolution_y, self.resolution_z}
         valid_tcomp_resolutions = {RESOLUTION_16, RESOLUTION_17}
-        if self._temperature_compensation and not resolutions.issubset(
-            valid_tcomp_resolutions
-        ):
+        if self._temperature_compensation and not resolutions.issubset(valid_tcomp_resolutions):
             resolutions_output = f"""Current Resolutions:
 \tresolution_x: {self.resolution_x}
 \tresolution_y: {self.resolution_y}
@@ -577,7 +575,6 @@ class MLX90393:  # pylint: disable=too-many-instance-attributes
         # Return the raw int values if requested
         return m_x, m_y, m_z
 
-    # pylint: disable=no-self-use
     def _unpack_axis_data(self, resolution: int, data: ReadableBuffer) -> int:
         # see datasheet
         if resolution == RESOLUTION_19:
