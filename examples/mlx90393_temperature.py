@@ -2,7 +2,9 @@
 # SPDX-License-Identifier: MIT
 
 import time
+
 import board
+
 import adafruit_mlx90393
 
 i2c = board.I2C()  # uses board.SCL and board.SDA
@@ -10,15 +12,13 @@ i2c = board.I2C()  # uses board.SCL and board.SDA
 try:
     SENSOR = adafruit_mlx90393.MLX90393(i2c, gain=adafruit_mlx90393.GAIN_1X)
 except ValueError:
-    SENSOR = adafruit_mlx90393.MLX90393(
-        i2c, gain=adafruit_mlx90393.GAIN_1X, address=0x18
-    )
+    SENSOR = adafruit_mlx90393.MLX90393(i2c, gain=adafruit_mlx90393.GAIN_1X, address=0x18)
 
 
 while True:
     temp = SENSOR.temperature
 
-    print("Temperature: {} °C".format(temp))
+    print(f"Temperature: {temp} °C")
 
     # Display the status field if an error occurred, etc.
     if SENSOR.last_status > adafruit_mlx90393.STATUS_OK:

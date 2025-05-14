@@ -2,7 +2,9 @@
 # SPDX-License-Identifier: MIT
 
 import time
+
 import board
+
 import adafruit_mlx90393
 
 i2c = board.I2C()  # uses board.SCL and board.SDA
@@ -10,16 +12,14 @@ i2c = board.I2C()  # uses board.SCL and board.SDA
 try:
     SENSOR = adafruit_mlx90393.MLX90393(i2c, gain=adafruit_mlx90393.GAIN_1X)
 except ValueError:
-    SENSOR = adafruit_mlx90393.MLX90393(
-        i2c, gain=adafruit_mlx90393.GAIN_1X, address=0x18
-    )
+    SENSOR = adafruit_mlx90393.MLX90393(i2c, gain=adafruit_mlx90393.GAIN_1X, address=0x18)
 
 while True:
     MX, MY, MZ = SENSOR.magnetic
-    print("[{}]".format(time.monotonic()))
-    print("X: {} uT".format(MX))
-    print("Y: {} uT".format(MY))
-    print("Z: {} uT".format(MZ))
+    print(f"[{time.monotonic()}]")
+    print(f"X: {MX} uT")
+    print(f"Y: {MY} uT")
+    print(f"Z: {MZ} uT")
     # Display the status field if an error occured, etc.
     if SENSOR.last_status > adafruit_mlx90393.STATUS_OK:
         SENSOR.display_status()
