@@ -516,22 +516,20 @@ class MLX90393:
         """
         Performs a software reset of the sensor.
         """
+        # As per manufacturers documentation (15.3.1.2):
+        # send EXIT cmd, wait 1ms, send RESET cmd, wait 1,5ms
         self._transceive(bytes([_CMD_EX]))
         if self._debug:
             print("Resetting sensor")
-        time.sleep(0.002)
+        time.sleep(0.001)
         self._transceive(bytes([_CMD_RT]))
+        time.sleep(0.002)
 
         # Read the temperature reference from register 0x24
         self._tref = self.read_reg(0x24)
         if self._debug:
             print(f"Tref = {hex(self._tref)}")
 
-        # burn a read post reset
-        try:
-            self.magnetic
-        except OSError:
-            pass
         return self._status_last
 
     @property
