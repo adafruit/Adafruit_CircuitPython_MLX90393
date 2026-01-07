@@ -249,7 +249,6 @@ class MLX90393:  # pylint: disable=too-many-instance-attributes
         # Set gain to the supplied level
         self.gain = self._gain_current
         self.temperature_compensation = self._temperature_compensation
-        self.temperature_oversampling = self._osr2
 
         # Set offsets to supplied level
         self.offset_x = self._off_x
