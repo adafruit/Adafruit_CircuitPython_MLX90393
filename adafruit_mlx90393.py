@@ -215,6 +215,7 @@ class MLX90393:
         filt: int = FILTER_7,
         oversampling: int = OSR_3,
         temperature_compensation: bool = False,
+        temperature_oversampling: int = OSR_0,
         offset: int = 0,
         debug: bool = False,
     ) -> None:
@@ -226,6 +227,7 @@ class MLX90393:
         self._osr = oversampling
         self._gain_current = gain
         self._temperature_compensation = temperature_compensation
+        self._osr2 = temperature_oversampling
         # Typical value according the application note
         self._tref = 0xB668
         self._off_x = self._off_y = self._off_z = offset
@@ -387,7 +389,7 @@ class MLX90393:
 
     @property
     def oversampling(self) -> int:
-        """The oversampling level."""
+        """The magnetic sensor oversampling level."""
         return self._osr
 
     @oversampling.setter
@@ -413,6 +415,21 @@ class MLX90393:
         reg |= temperature_compensation << t_cmp_bit
         self.write_reg(_CMD_REG_CONF2, reg)
         self._temperature_compensation = temperature_compensation
+
+    @property
+    def temperature_oversampling(self) -> int:
+        """The temperature sensor oversampling level."""
+        return self._osr2
+
+    @temperature_oversampling.setter
+    def temperature_oversampling(self, level: int) -> None:
+        if level not in range(4):
+            raise ValueError("Incorrect oversampling level.")
+        reg = self.read_reg(_CMD_REG_CONF3)
+        reg &= 0xE7FF
+        reg |= (level & 0x3) << 12
+        self.write_reg(_CMD_REG_CONF3, reg)
+        self._osr2 = level
 
     @property
     def offset_x(self) -> int:
