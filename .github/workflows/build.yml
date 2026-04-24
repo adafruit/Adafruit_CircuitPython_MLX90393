@@ -10,5 +10,9 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
+    - name: Install uv
+      uses: astral-sh/setup-uv@v5
+    - name: Create Requirements File
+      run: uv export --format requirements-txt
     - name: Run Build CI workflow
       uses: adafruit/workflows-circuitpython-libs/build@main
